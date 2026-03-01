@@ -41,6 +41,14 @@ python scripts/kanbanzone_api.py board --include-columns
 python scripts/kanbanzone_api.py cards
 ```
 
+## Commit Style
+
+- **Subject line**: short imperative verb phrase under ~72 chars (e.g., `Fix oversized content chunks`). Start with a verb: `Add`, `Fix`, `Update`.
+- **Body** (for non-trivial changes): use markdown formatting with `## Problem`, `## Solution`, and `## Verified` sections to explain *why* the change was made, *what* was done, and *how* it was validated. If the change adds or modifies environment variables, note the impact in the body.
+- **Trivial changes**: only typo corrections are considered trivial and may omit the body. All other changes deserve the full message format.
+- **KanbanZone**: append the relevant Roadmap board card URL (e.g., `https://kanbanzone.io/b/QJxJGohF/c/298`) as the last line before `Co-Authored-By`.
+- **Co-authorship**: when AI-assisted, end with `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>` (or the model used).
+
 ## API Notes
 
 - Base URL: `https://integrations.kanbanzone.io/v1`
