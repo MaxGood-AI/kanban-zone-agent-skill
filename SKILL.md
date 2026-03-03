@@ -1,9 +1,10 @@
 ---
 name: kanban-zone
-description: Interact with KanbanZone kanban boards via the KanbanZone API. Use when the user wants to manage kanban cards, view boards, move cards between columns, check WIP limits, link cards, search across boards, or get board-level metrics. Supports listing boards, creating/updating/moving cards, card links, custom fields, watchers, filtering, and cross-board search.
-version: 2.0.0
+description: Interact with KanbanZone kanban boards via the KanbanZone API. Use when the user wants to manage kanban cards, view boards, move cards between columns, check WIP limits, link cards, search across boards, or get board-level metrics. Supports listing boards, creating/updating/moving cards, card links, custom fields, watchers, filtering, and cross-board search. Even if the user just says "check the board", "what's in progress", or mentions kanban cards, use this skill.
 license: MIT
+compatibility: Requires python3 and environment variables KANBANZONE_API_KEY and KANBANZONE_BOARD_ID
 metadata:
+  version: "2.1.0"
   openclaw:
     requires:
       env:
@@ -19,62 +20,74 @@ metadata:
 
 Manage KanbanZone kanban boards through the KanbanZone Public API (v1.3).
 
-## Configuration
+## Environment Setup — MUST DO BEFORE EVERY COMMAND
 
-**Required environment variables:**
-- `KANBANZONE_API_KEY` — Your raw API key from KanbanZone (the script handles Base64 encoding)
-- `KANBANZONE_BOARD_ID` — Default board public ID (overridable per command with `--board`)
+The CLI script reads two environment variables: `KANBANZONE_API_KEY` and `KANBANZONE_BOARD_ID`. These must be **exported** in your shell before running any command. If they are not exported, every API call will fail with a credentials error.
 
-**Get your API key:**
-Settings > Organization Settings > Integrations > API Key
+Look for a `.env` file in the workspace root (or the location specified in the project's CLAUDE.md). The `.env` file typically contains plain `KEY=VALUE` lines without `export`, so you must export them explicitly:
+
+```bash
+export $(grep -E '^KANBANZONE_' .env | xargs)
+```
+
+Chain this with every command to guarantee credentials are always available:
+
+```bash
+export $(grep -E '^KANBANZONE_' .env | xargs) && python3 scripts/kanbanzone_api.py boards
+```
+
+**Why this matters:** Each shell invocation starts with a clean environment. If you ran `export` in a previous shell command, it will NOT carry over. Always prepend the export line.
+
+**Get your API key:** Settings > Organization Settings > Integrations > API Key
 Direct: `https://kanbanzone.io/settings/integrations`
 
-**Find column IDs:**
-Board Settings > API, or Organization Settings > Integrations > API
+**Find column IDs:** Board Settings > API, or Organization Settings > Integrations > API
 
 ## Quick Start
 
+All examples below assume env vars are exported (see above). Always prepend the export line in practice.
+
 ```bash
 # List all boards
-python scripts/kanbanzone_api.py boards
+python3 scripts/kanbanzone_api.py boards
 
 # Get board details with columns and WIP limits
-python scripts/kanbanzone_api.py board --include-columns
+python3 scripts/kanbanzone_api.py board --include-columns
 
 # List cards on default board
-python scripts/kanbanzone_api.py cards
+python3 scripts/kanbanzone_api.py cards
 
 # Filter cards by label and blocked status
-python scripts/kanbanzone_api.py cards --label "Bug" --blocked
+python3 scripts/kanbanzone_api.py cards --label "Bug" --blocked
 
 # Search cards by keyword
-python scripts/kanbanzone_api.py cards --query "authentication"
+python3 scripts/kanbanzone_api.py cards --query "authentication"
 
 # Get a specific card
-python scripts/kanbanzone_api.py card --number 42
+python3 scripts/kanbanzone_api.py card --number 42
 
 # Create a card with watchers and custom fields
-python scripts/kanbanzone_api.py create-card --title "New task" --column-id abc123 \
+python3 scripts/kanbanzone_api.py create-card --title "New task" --column-id abc123 \
   --owner user@example.com --watcher reviewer@example.com \
   --custom-field "Sprint=42" --custom-field "Team=Platform"
 
 # Move a card to a column
-python scripts/kanbanzone_api.py move-card --id 42 --column-id abc123
+python3 scripts/kanbanzone_api.py move-card --id 42 --column-id abc123
 
 # Link cards together
-python scripts/kanbanzone_api.py link-card --id 42 --card 99
+python3 scripts/kanbanzone_api.py link-card --id 42 --card 99
 
 # Link to an external URL
-python scripts/kanbanzone_api.py link-card --id 42 --url "https://docs.example.com" --title "Spec"
+python3 scripts/kanbanzone_api.py link-card --id 42 --url "https://docs.example.com" --title "Spec"
 
 # Remove a link
-python scripts/kanbanzone_api.py unlink-card --id 42 --card 99
+python3 scripts/kanbanzone_api.py unlink-card --id 42 --card 99
 
 # Search cards across all boards
-python scripts/kanbanzone_api.py search-cards --query "deploy"
+python3 scripts/kanbanzone_api.py search-cards --query "deploy"
 
 # Check WIP limits
-python scripts/kanbanzone_api.py wip-check
+python3 scripts/kanbanzone_api.py wip-check
 ```
 
 ## Core Workflows
@@ -105,21 +118,21 @@ python scripts/kanbanzone_api.py wip-check
 ### Custom Fields
 Set custom metadata on cards during creation or update:
 ```bash
-python scripts/kanbanzone_api.py create-card --title "Task" \
+python3 scripts/kanbanzone_api.py create-card --title "Task" \
   --custom-field "Sprint=42" --custom-field "Team=Platform" --custom-field "Estimate=3d"
 ```
 
 ### Filtering & Search
 Filter cards on a single board:
 ```bash
-python scripts/kanbanzone_api.py cards --label "Bug" --owner "dev@example.com" --blocked
-python scripts/kanbanzone_api.py cards --column "In Progress" --priority 1
-python scripts/kanbanzone_api.py cards --query "login"
+python3 scripts/kanbanzone_api.py cards --label "Bug" --owner "dev@example.com" --blocked
+python3 scripts/kanbanzone_api.py cards --column "In Progress" --priority 1
+python3 scripts/kanbanzone_api.py cards --query "login"
 ```
 
 Search across all boards:
 ```bash
-python scripts/kanbanzone_api.py search-cards --query "deploy" --label "Enhancement"
+python3 scripts/kanbanzone_api.py search-cards --query "deploy" --label "Enhancement"
 ```
 
 ### WIP Limit Checking
@@ -193,7 +206,7 @@ If the user says board or column data is stale, or explicitly asks to refresh th
 
 ## Script Reference
 
-All commands output JSON. Run `python scripts/kanbanzone_api.py --help` for full usage.
+All commands output JSON. Run `python3 scripts/kanbanzone_api.py --help` for full usage.
 
 | Command | Description |
 |---------|-------------|

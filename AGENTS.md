@@ -36,9 +36,9 @@ There is no test suite. To verify changes, run commands against a real KanbanZon
 ```bash
 export KANBANZONE_API_KEY="your-key"
 export KANBANZONE_BOARD_ID="your-board-id"
-python scripts/kanbanzone_api.py boards
-python scripts/kanbanzone_api.py board --include-columns
-python scripts/kanbanzone_api.py cards
+python3 scripts/kanbanzone_api.py boards
+python3 scripts/kanbanzone_api.py board --include-columns
+python3 scripts/kanbanzone_api.py cards
 ```
 
 ## Commit Style
