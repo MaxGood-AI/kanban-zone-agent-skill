@@ -4,7 +4,7 @@
 Self-contained client using only Python standard library.
 All output is JSON.
 
-Environment variables:
+Environment variables (auto-loaded from .env if not in environment):
     KANBANZONE_API_KEY  — Raw API key (Base64-encoded automatically)
     KANBANZONE_BOARD_ID — Default board public ID
 """
@@ -21,8 +21,42 @@ import urllib.request
 
 BASE_URL = "https://integrations.kanbanzone.io/v1"
 
+_env_loaded = False
+
+
+def _load_env_file():
+    """Load KANBANZONE_* variables from .env if not already in the environment."""
+    global _env_loaded
+    if _env_loaded:
+        return
+    _env_loaded = True
+
+    if os.environ.get("KANBANZONE_API_KEY"):
+        return
+
+    candidates = [
+        os.path.join(os.getcwd(), ".env"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"),
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            with open(path) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" not in line:
+                        continue
+                    key, _, value = line.partition("=")
+                    key = key.strip()
+                    value = value.strip().strip("'\"")
+                    if key.startswith("KANBANZONE_"):
+                        os.environ.setdefault(key, value)
+            break
+
 
 def get_api_key():
+    _load_env_file()
     raw = os.environ.get("KANBANZONE_API_KEY")
     if not raw:
         error_exit("KANBANZONE_API_KEY environment variable is not set")
@@ -30,6 +64,7 @@ def get_api_key():
 
 
 def get_default_board():
+    _load_env_file()
     return os.environ.get("KANBANZONE_BOARD_ID")
 
 

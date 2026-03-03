@@ -20,23 +20,11 @@ metadata:
 
 Manage KanbanZone kanban boards through the KanbanZone Public API (v1.3).
 
-## Environment Setup — MUST DO BEFORE EVERY COMMAND
+## Environment Setup
 
-The CLI script reads two environment variables: `KANBANZONE_API_KEY` and `KANBANZONE_BOARD_ID`. These must be **exported** in your shell before running any command. If they are not exported, every API call will fail with a credentials error.
+The CLI script reads two environment variables: `KANBANZONE_API_KEY` and `KANBANZONE_BOARD_ID`.
 
-Look for a `.env` file in the workspace root (or the location specified in the project's CLAUDE.md). The `.env` file typically contains plain `KEY=VALUE` lines without `export`, so you must export them explicitly:
-
-```bash
-export $(grep -E '^KANBANZONE_' .env | xargs)
-```
-
-Chain this with every command to guarantee credentials are always available:
-
-```bash
-export $(grep -E '^KANBANZONE_' .env | xargs) && python3 scripts/kanbanzone_api.py boards
-```
-
-**Why this matters:** Each shell invocation starts with a clean environment. If you ran `export` in a previous shell command, it will NOT carry over. Always prepend the export line.
+The script **automatically loads** these from a `.env` file if they are not already in the environment. It searches for `.env` in the current working directory and in the skill's parent directory. No shell export or command substitution is needed — just run the Python command directly.
 
 **Get your API key:** Settings > Organization Settings > Integrations > API Key
 Direct: `https://kanbanzone.io/settings/integrations`
@@ -45,7 +33,7 @@ Direct: `https://kanbanzone.io/settings/integrations`
 
 ## Quick Start
 
-All examples below assume env vars are exported (see above). Always prepend the export line in practice.
+All examples below assume a `.env` file with `KANBANZONE_API_KEY` and `KANBANZONE_BOARD_ID` exists in the workspace root.
 
 ```bash
 # List all boards
