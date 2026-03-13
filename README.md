@@ -32,16 +32,33 @@ Direct link: `https://kanbanzone.io/settings/integrations`
 
 ### 2. Configure Environment
 
-Create a `.env` file in your project root (or export the variables):
+Create a `.env` file in the folder where you'll be working:
 
 ```bash
 KANBANZONE_API_KEY=your-api-key-here
 KANBANZONE_BOARD_ID=your-default-board-id
 ```
 
-The script auto-loads `.env` from the current working directory or the skill's parent directory — no shell export needed.
+The script auto-loads `.env` from the current working directory — no shell export needed.
 
 **Find column IDs:** Board Settings > API, or Organization Settings > Integrations > API.
+
+### Working with Multiple Boards
+
+If you use different boards for different areas of your business, create a `.env` file in each folder with the board ID for that area. The skill automatically picks up whichever `.env` is in your current working directory.
+
+For example:
+
+```
+~/Marketing/.env      → KANBANZONE_BOARD_ID=marketing-board-id
+~/Sales/.env          → KANBANZONE_BOARD_ID=sales-board-id
+~/LegalDocuments/.env → KANBANZONE_BOARD_ID=legal-board-id
+~/Operations/.env     → KANBANZONE_BOARD_ID=ops-board-id
+```
+
+When you open your AI assistant from `~/Marketing`, it automatically works with your marketing board. Open it from `~/Sales` and it works with your sales board. No configuration switching needed — just work from the right folder.
+
+The `KANBANZONE_API_KEY` is the same across all boards, so you can either repeat it in each `.env` or set it once as a system environment variable and only put `KANBANZONE_BOARD_ID` in each folder's `.env`.
 
 ### 3. List Your Boards
 
