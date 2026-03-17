@@ -57,3 +57,7 @@ python3 scripts/kanbanzone_api.py cards
 - The `ColumnItemOutputModel.boardTitle` field contains the column ID, not a board title.
 - Card numbers (integers) are used as IDs in update and move operations.
 - Mirrored card operations require a `board` field in the request body.
+
+## Synchronization Rule
+
+If both `AGENTS.md` and `CLAUDE.md` exist in this directory, they must be identical in content and updated together in the same commit. Do not allow them to drift.
