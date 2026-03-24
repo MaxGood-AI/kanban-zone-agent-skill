@@ -13,6 +13,7 @@ import argparse
 import base64
 import json
 import os
+from pathlib import Path
 import sys
 import urllib.error
 import urllib.parse
@@ -34,10 +35,28 @@ def _load_env_file():
     if os.environ.get("KANBANZONE_API_KEY"):
         return
 
-    candidates = [
-        os.path.join(os.getcwd(), ".env"),
-        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"),
+    candidates = []
+    seen = set()
+
+    # Search upward from both the current working directory and the skill repo.
+    # This keeps the CLI working when it is invoked from the workspace root,
+    # the installed skill directory, or the source repo.
+    search_roots = [
+        Path.cwd(),
+        Path(__file__).resolve().parents[1],
     ]
+    for root in search_roots:
+        current = root
+        while True:
+            candidate = current / ".env"
+            candidate_str = str(candidate)
+            if candidate_str not in seen:
+                candidates.append(candidate_str)
+                seen.add(candidate_str)
+            if current.parent == current:
+                break
+            current = current.parent
+
     for path in candidates:
         if os.path.isfile(path):
             with open(path) as f:
