@@ -38,7 +38,7 @@ result = subprocess.run(
     ["python3", "skills/kanban-zone/scripts/kanbanzone_api.py",
      "update-card", "--id", "123",
      "--description", open("/tmp/kz-desc.txt").read()],
-    capture_output=True, text=True, cwd="/Users/janemaxgood/.openclaw/workspace"
+    capture_output=True, text=True
 )
 print(result.stdout)
 print(result.stderr)
