@@ -74,7 +74,13 @@ python3 scripts/kanbanzone_api.py boards
 # List all boards with active/blocked/overdue metrics
 python3 scripts/kanbanzone_api.py boards
 
-# Get board details with columns, states, and WIP limits
+# Include column details in the board list
+python3 scripts/kanbanzone_api.py boards --include-columns
+
+# Include archived boards
+python3 scripts/kanbanzone_api.py boards --include-archived
+
+# Get a specific board's details with columns, states, and WIP limits
 python3 scripts/kanbanzone_api.py board --include-columns
 
 # Check WIP limits — flags columns over max or under min
@@ -87,19 +93,41 @@ python3 scripts/kanbanzone_api.py wip-check
 # List all cards on the default board
 python3 scripts/kanbanzone_api.py cards
 
+# Paginate through cards (default: page 1, 100 per page)
+python3 scripts/kanbanzone_api.py cards --page 2 --count 50
+
+# Only cards updated in the last 7 days
+python3 scripts/kanbanzone_api.py cards --days-since-update 7
+
+# Include archived cards
+python3 scripts/kanbanzone_api.py cards --include-archived
+
 # Get a specific card by number
 python3 scripts/kanbanzone_api.py card --number 42
 
 # Create a card
 python3 scripts/kanbanzone_api.py create-card --title "Follow up with Johnson account" --column-id abc123
 
-# Create a card with owner, watchers, and custom fields
+# Create a card with all optional fields
 python3 scripts/kanbanzone_api.py create-card --title "Prepare Q2 forecast" --column-id abc123 \
   --owner sarah@company.com --watcher cfo@company.com \
-  --custom-field "Client=Acme Corp" --custom-field "Region=Northeast"
+  --priority 1 --label "Sales" --size M --due "04/15/2026" \
+  --custom-field "Client=Acme Corp" --custom-field "Region=Northeast" \
+  --add-to-top
+
+# Create a card from a template
+python3 scripts/kanbanzone_api.py create-card --title "Sprint retrospective" --column-id abc123 \
+  --template-id tmpl1234
+
+# Create a card with description from a file (avoids multi-line quoting issues)
+python3 scripts/kanbanzone_api.py create-card --title "New task" --column-id abc123 \
+  --description-file /tmp/desc.txt
 
 # Update a card
 python3 scripts/kanbanzone_api.py update-card --id 42 --description "Updated scope and timeline"
+
+# Update a card's description from a file
+python3 scripts/kanbanzone_api.py update-card --id 42 --description-file /tmp/desc.txt
 
 # Flag a card as blocked
 python3 scripts/kanbanzone_api.py update-card --id 42 --blocked true \
@@ -110,6 +138,9 @@ python3 scripts/kanbanzone_api.py move-card --id 42 --column-id def456
 
 # Assign an owner
 python3 scripts/kanbanzone_api.py update-card --id 42 --owner sarah@company.com
+
+# Update a mirrored card (specify the board it's mirrored on)
+python3 scripts/kanbanzone_api.py update-card --id 42 --title "Revised title" --mirror-board board123
 ```
 
 ### Card Links
@@ -140,6 +171,9 @@ python3 scripts/kanbanzone_api.py cards --query "onboarding"
 
 # Search cards across ALL boards
 python3 scripts/kanbanzone_api.py search-cards --query "renewal" --label "Sales"
+
+# Search across all boards, including archived cards
+python3 scripts/kanbanzone_api.py search-cards --query "renewal" --include-archived
 ```
 
 ### Batch Operations
@@ -167,21 +201,21 @@ File format:
 | Command | Description |
 |---------|-------------|
 | **Board** | |
-| `boards` | List all boards with metrics (active/blocked/overdue) |
-| `board` | Get a board's details (optionally include columns with `--include-columns`) |
+| `boards` | List all boards with metrics. Flags: `--include-archived`, `--include-columns` |
+| `board` | Get a board's details. Flags: `--include-columns` |
 | `wip-check` | Check WIP limits across all columns, flag violations |
 | **Cards** | |
-| `cards` | List cards with optional filters (`--label`, `--owner`, `--column`, `--priority`, `--blocked`, `--query`) |
-| `card` | Get a single card by number |
-| `create-card` | Create a card (supports `--owner`, `--watcher`, `--custom-field`, `--priority`) |
-| `create-cards` | Batch create cards from a JSON file |
-| `update-card` | Update card fields (description, owner, watchers, blocked status, custom fields) |
-| `move-card` | Move a card to a different column |
+| `cards` | List cards with pagination and filters. Flags: `--page`, `--count`, `--days-since-update`, `--include-archived`, `--label`, `--owner`, `--column`, `--priority`, `--blocked`, `--query` |
+| `card` | Get a single card by `--number` |
+| `create-card` | Create a card. Flags: `--title` (required), `--column-id`, `--description`, `--description-file`, `--owner`, `--priority`, `--label`, `--size`, `--due`, `--template-id`, `--add-to-top`, `--watcher`, `--custom-field` |
+| `create-cards` | Batch create cards from a JSON `--file` |
+| `update-card` | Update card fields. Flags: `--id` (required), `--title`, `--description`, `--description-file`, `--column-id`, `--owner`, `--priority`, `--label`, `--size`, `--due`, `--blocked`, `--blocked-by`, `--blocked-reason`, `--mirror-board`, `--watcher`, `--custom-field` |
+| `move-card` | Move a card to a different column. Flags: `--id` (required), `--column-id` (required), `--mirror-board` |
 | **Links** | |
-| `link-card` | Add a card-to-card or external URL link |
-| `unlink-card` | Remove a card-to-card or URL link |
+| `link-card` | Add a card-to-card or external URL link. Flags: `--id` (required), `--card` or `--url`, `--type`, `--title`, `--mirror-board` |
+| `unlink-card` | Remove a card-to-card or URL link. Flags: `--id` (required), `--card` or `--url`, `--mirror-board` |
 | **Search** | |
-| `search-cards` | Search cards by keyword across all boards |
+| `search-cards` | Search cards across all boards. Flags: `--query`, `--label`, `--owner`, `--priority`, `--blocked`, `--include-archived` |
 
 All commands output JSON. Use `--board <id>` to override the default board from the environment.
 
@@ -197,6 +231,7 @@ KanbanZone columns have a state that describes where cards are in the workflow:
 | `In Progress` | Currently being worked on |
 | `Done` | Completed |
 | `Archive` | Historical items |
+| `None` | No state assigned |
 
 ## What Your AI Assistant Can Do With This
 
