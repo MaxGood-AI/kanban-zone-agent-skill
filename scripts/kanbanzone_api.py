@@ -261,13 +261,25 @@ def cmd_card(args):
     output(api_request("GET", "/card", params=params))
 
 
+def read_file_arg(path):
+    """Read content from a file path, stripping one trailing newline if present."""
+    with open(path, "r") as f:
+        content = f.read()
+    if content.endswith("\n"):
+        content = content[:-1]
+    return content
+
+
 def cmd_create_card(args):
     board = require_board(args)
     body = {"board": board, "title": args.title}
     if args.column_id:
         body["columnId"] = args.column_id
-    if args.description:
-        body["description"] = args.description
+    description = args.description
+    if args.description_file:
+        description = read_file_arg(args.description_file)
+    if description:
+        body["description"] = description
     if args.owner:
         body["owner"] = args.owner
     if args.priority:
@@ -302,8 +314,11 @@ def cmd_update_card(args):
     body = {}
     if args.title:
         body["title"] = args.title
-    if args.description:
-        body["description"] = args.description
+    description = args.description
+    if args.description_file:
+        description = read_file_arg(args.description_file)
+    if description:
+        body["description"] = description
     if args.column_id:
         body["columnId"] = args.column_id
     if args.owner:
@@ -507,6 +522,7 @@ def build_parser():
     p.add_argument("--title", required=True, help="Card title")
     p.add_argument("--column-id", help="Target column ID")
     p.add_argument("--description", help="Card description (text or HTML)")
+    p.add_argument("--description-file", help="Read description from file (overrides --description)")
     p.add_argument("--owner", help="Owner email address")
     p.add_argument("--priority", choices=["1", "2", "3", "4"], help="Priority level")
     p.add_argument("--label", help="Label name")
@@ -527,6 +543,7 @@ def build_parser():
     p.add_argument("--id", required=True, type=int, help="Card number")
     p.add_argument("--title", help="New title")
     p.add_argument("--description", help="New description")
+    p.add_argument("--description-file", help="Read description from file (overrides --description)")
     p.add_argument("--column-id", help="Move to column ID")
     p.add_argument("--owner", help="Owner email")
     p.add_argument("--priority", choices=["1", "2", "3", "4"], help="Priority")

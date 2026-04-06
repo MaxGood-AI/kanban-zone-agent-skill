@@ -94,8 +94,29 @@ python3 scripts/kanbanzone_api.py wip-check
 
 ### Card Review
 1. `card --number <num>` to read card details, description, and current state.
-2. `update-card --id <num> --description "Updated notes"` to update content.
+2. `update-card --id <num> --description-file /tmp/kz_desc.txt` to update content (write file first, then run command).
 3. `update-card --id <num> --blocked true --blocked-reason "Waiting on X"` to flag blockers.
+
+### Description Updates (IMPORTANT)
+
+**Always use `--description-file` instead of `--description` for creating or updating card descriptions.** This avoids multi-line quoting issues in shell commands.
+
+**Always format descriptions as HTML, never Markdown.** KanbanZone renders card descriptions as HTML. Use tags like `<h3>`, `<p>`, `<ul>/<li>`, `<strong>`, `<em>`, `<a href="...">`, and `<br>` instead of Markdown syntax (`###`, `**`, `-`, `[text](url)`, etc.).
+
+Workflow:
+1. Write the description content to a temp file (e.g., `/tmp/kz_desc.txt`) using the Write tool.
+2. Run the command with `--description-file /tmp/kz_desc.txt`.
+
+```bash
+# CORRECT — use --description-file for all description changes
+python3 scripts/kanbanzone_api.py update-card --id 42 --description-file /tmp/kz_desc.txt
+python3 scripts/kanbanzone_api.py create-card --title "New task" --description-file /tmp/kz_desc.txt
+
+# AVOID — inline --description with multi-line content
+python3 scripts/kanbanzone_api.py update-card --id 42 --description "line 1\nline 2\n..."
+```
+
+The `--description-file` flag reads the entire file content as the description. It overrides `--description` if both are provided.
 
 ### Card Links
 1. `link-card --id <num> --card <other-num>` to create a card-to-card link (default type: `related`).
