@@ -57,6 +57,7 @@ python3 scripts/kanbanzone_api.py cards
 - The `ColumnItemOutputModel.boardTitle` field contains the column ID, not a board title.
 - Card numbers (integers) are used as IDs in update and move operations.
 - Mirrored card operations require a `board` field in the request body.
+- **Card descriptions are HTML, and HTML tables are silently stripped.** Use `<pre>` with fixed-width ASCII for tabular data — never `<table>`/`<tr>`/`<td>`. See SKILL.md and README.md for examples.
 
 ## Synchronization Rule
 

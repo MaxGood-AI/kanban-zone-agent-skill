@@ -87,6 +87,24 @@ python3 scripts/kanbanzone_api.py board --include-columns
 python3 scripts/kanbanzone_api.py wip-check
 ```
 
+### Description Formatting (HTML, No Tables)
+
+Card descriptions are rendered as **HTML**, so use tags like `<h3>`, `<p>`, `<ul>/<li>`, `<strong>`, `<a href="...">`, and `<br>` — never Markdown.
+
+**Important:** KanbanZone **silently strips HTML table tags** (`<table>`, `<tr>`, `<td>`, etc.), so tabular data will vanish from the rendered card. For **any** table, use a `<pre>` block with fixed-width ASCII columns instead (the HTML equivalent of Markdown triple-backtick code blocks):
+
+```html
+<pre>
+Field         | Value
+--------------+------------
+Priority      | High
+Due date      | 2026-04-30
+Owner         | sarah@co.com
+</pre>
+```
+
+For multi-line descriptions, use `--description-file /tmp/desc.txt` to avoid shell quoting issues.
+
 ### Card Management
 
 ```bash

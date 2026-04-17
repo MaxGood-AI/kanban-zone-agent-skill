@@ -133,6 +133,20 @@ python3 scripts/kanbanzone_api.py wip-check
 
 **Always format descriptions as HTML, never Markdown.** KanbanZone renders card descriptions as HTML. Use tags like `<h3>`, `<p>`, `<ul>/<li>`, `<strong>`, `<em>`, `<a href="...">`, and `<br>` instead of Markdown syntax (`###`, `**`, `-`, `[text](url)`, etc.).
 
+**⚠️ NEVER use HTML tables in descriptions.** KanbanZone **silently strips** `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, and `<td>` tags — the data disappears from the rendered card without warning. For **any** tabular data, use a `<pre>` block with fixed-width ASCII columns instead (this is the HTML equivalent of Markdown triple-backtick code blocks). Example:
+
+```html
+<pre>
+Field         | Value
+--------------+------------
+Priority      | High
+Due date      | 2026-04-30
+Owner         | sarah@co.com
+</pre>
+```
+
+Do not attempt to "illustrate tables of data with HTML tables" — always use `<pre>` with fixed-width characters.
+
 Workflow:
 1. Write the description content to a temp file (e.g., `/tmp/kz_desc.txt`) using the Write tool.
 2. Run the command with `--description-file /tmp/kz_desc.txt`.
