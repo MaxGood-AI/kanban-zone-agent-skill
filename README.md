@@ -1,12 +1,12 @@
-# KanbanZone CLI Skill for Claude Code, Codex & OpenClaw
+# Kanban Zone CLI Skill for Claude Code, Codex & OpenClaw
 
-Manage your [KanbanZone](https://kanbanzone.io) kanban boards — cards, columns, WIP limits, links, custom fields, and cross-board search — directly from your AI assistant or terminal. One self-contained Python script, zero dependencies beyond the standard library.
+Manage your [Kanban Zone](https://kanbanzone.com) kanban boards — cards, columns, WIP limits, links, custom fields, and cross-board search — directly from your AI assistant or terminal. One self-contained Python script, zero dependencies beyond the standard library.
 
 ## Why This Exists
 
 Small and mid-sized businesses run on kanban boards — tracking sales pipelines, client onboarding, marketing campaigns, hiring, operations, and more. But switching between your AI assistant and a browser to check the board, move cards, or create tasks breaks your flow.
 
-This skill gives your AI assistant full access to your KanbanZone boards so it can check what's in progress, create and assign work items, enforce WIP limits, link cards to documents or resources, and search across all your boards — all through a simple conversation. Ask your AI assistant to "check the board," "what's blocked?", or "create a card for the Johnson proposal" and it just works.
+This skill gives your AI assistant full access to your Kanban Zone boards so it can check what's in progress, create and assign work items, enforce WIP limits, link cards to documents or resources, and search across all your boards — all through a simple conversation. Ask your AI assistant to "check the board," "what's blocked?", or "create a card for the Johnson proposal" and it just works.
 
 ## Key Features
 
@@ -26,7 +26,7 @@ This skill gives your AI assistant full access to your KanbanZone boards so it c
 
 ### 1. Get Your API Key
 
-Go to [KanbanZone](https://kanbanzone.io) > **Settings** > **Organization Settings** > **Integrations** > **API Key**.
+Go to [Kanban Zone](https://kanbanzone.com) > **Settings** > **Organization Settings** > **Integrations** > **API Key**.
 
 Direct link: `https://kanbanzone.io/settings/integrations`
 
@@ -35,8 +35,8 @@ Direct link: `https://kanbanzone.io/settings/integrations`
 Create a `.env` file in the folder where you'll be working:
 
 ```bash
-KANBANZONE_API_KEY=your-api-key-here
-KANBANZONE_BOARD_ID=your-default-board-id
+KANBAN_ZONE_API_KEY=your-api-key-here
+KANBAN_ZONE_BOARD_ID=your-default-board-id
 ```
 
 The script auto-loads `.env` from the current working directory — no shell export needed.
@@ -50,20 +50,20 @@ If you use different boards for different areas of your business, create a `.env
 For example:
 
 ```
-~/Marketing/.env      → KANBANZONE_BOARD_ID=marketing-board-id
-~/Sales/.env          → KANBANZONE_BOARD_ID=sales-board-id
-~/LegalDocuments/.env → KANBANZONE_BOARD_ID=legal-board-id
-~/Operations/.env     → KANBANZONE_BOARD_ID=ops-board-id
+~/Marketing/.env      → KANBAN_ZONE_BOARD_ID=marketing-board-id
+~/Sales/.env          → KANBAN_ZONE_BOARD_ID=sales-board-id
+~/LegalDocuments/.env → KANBAN_ZONE_BOARD_ID=legal-board-id
+~/Operations/.env     → KANBAN_ZONE_BOARD_ID=ops-board-id
 ```
 
 When you open your AI assistant from `~/Marketing`, it automatically works with your marketing board. Open it from `~/Sales` and it works with your sales board. No configuration switching needed — just work from the right folder.
 
-The `KANBANZONE_API_KEY` is the same across all boards, so you can either repeat it in each `.env` or set it once as a system environment variable and only put `KANBANZONE_BOARD_ID` in each folder's `.env`.
+The `KANBAN_ZONE_API_KEY` is the same across all boards, so you can either repeat it in each `.env` or set it once as a system environment variable and only put `KANBAN_ZONE_BOARD_ID` in each folder's `.env`.
 
 ### 3. List Your Boards
 
 ```bash
-python3 scripts/kanbanzone_api.py boards
+python3 scripts/kanban_zone_api.py boards
 ```
 
 ## Usage
@@ -72,26 +72,26 @@ python3 scripts/kanbanzone_api.py boards
 
 ```bash
 # List all boards with active/blocked/overdue metrics
-python3 scripts/kanbanzone_api.py boards
+python3 scripts/kanban_zone_api.py boards
 
 # Include column details in the board list
-python3 scripts/kanbanzone_api.py boards --include-columns
+python3 scripts/kanban_zone_api.py boards --include-columns
 
 # Include archived boards
-python3 scripts/kanbanzone_api.py boards --include-archived
+python3 scripts/kanban_zone_api.py boards --include-archived
 
 # Get a specific board's details with columns, states, and WIP limits
-python3 scripts/kanbanzone_api.py board --include-columns
+python3 scripts/kanban_zone_api.py board --include-columns
 
 # Check WIP limits — flags columns over max or under min
-python3 scripts/kanbanzone_api.py wip-check
+python3 scripts/kanban_zone_api.py wip-check
 ```
 
 ### Description Formatting (HTML, No Tables)
 
 Card descriptions are rendered as **HTML**, so use tags like `<h3>`, `<p>`, `<ul>/<li>`, `<strong>`, `<a href="...">`, and `<br>` — never Markdown.
 
-**Important:** KanbanZone **silently strips HTML table tags** (`<table>`, `<tr>`, `<td>`, etc.), so tabular data will vanish from the rendered card. For **any** table, use a `<pre>` block with fixed-width ASCII columns instead (the HTML equivalent of Markdown triple-backtick code blocks):
+**Important:** Kanban Zone **silently strips HTML table tags** (`<table>`, `<tr>`, `<td>`, etc.), so tabular data will vanish from the rendered card. For **any** table, use a `<pre>` block with fixed-width ASCII columns instead (the HTML equivalent of Markdown triple-backtick code blocks):
 
 ```html
 <pre>
@@ -109,89 +109,89 @@ For multi-line descriptions, use `--description-file /tmp/desc.txt` to avoid she
 
 ```bash
 # List all cards on the default board
-python3 scripts/kanbanzone_api.py cards
+python3 scripts/kanban_zone_api.py cards
 
 # Paginate through cards (default: page 1, 100 per page)
-python3 scripts/kanbanzone_api.py cards --page 2 --count 50
+python3 scripts/kanban_zone_api.py cards --page 2 --count 50
 
 # Only cards updated in the last 7 days
-python3 scripts/kanbanzone_api.py cards --days-since-update 7
+python3 scripts/kanban_zone_api.py cards --days-since-update 7
 
 # Include archived cards
-python3 scripts/kanbanzone_api.py cards --include-archived
+python3 scripts/kanban_zone_api.py cards --include-archived
 
 # Get a specific card by number
-python3 scripts/kanbanzone_api.py card --number 42
+python3 scripts/kanban_zone_api.py card --number 42
 
 # Create a card
-python3 scripts/kanbanzone_api.py create-card --title "Follow up with Johnson account" --column-id abc123
+python3 scripts/kanban_zone_api.py create-card --title "Follow up with Johnson account" --column-id abc123
 
 # Create a card with all optional fields
-python3 scripts/kanbanzone_api.py create-card --title "Prepare Q2 forecast" --column-id abc123 \
+python3 scripts/kanban_zone_api.py create-card --title "Prepare Q2 forecast" --column-id abc123 \
   --owner sarah@company.com --watcher cfo@company.com \
   --priority 1 --label "Sales" --size M --due "04/15/2026" \
   --custom-field "Client=Acme Corp" --custom-field "Region=Northeast" \
   --add-to-top
 
 # Create a card from a template
-python3 scripts/kanbanzone_api.py create-card --title "Sprint retrospective" --column-id abc123 \
+python3 scripts/kanban_zone_api.py create-card --title "Sprint retrospective" --column-id abc123 \
   --template-id tmpl1234
 
 # Create a card with description from a file (avoids multi-line quoting issues)
-python3 scripts/kanbanzone_api.py create-card --title "New task" --column-id abc123 \
+python3 scripts/kanban_zone_api.py create-card --title "New task" --column-id abc123 \
   --description-file /tmp/desc.txt
 
 # Update a card
-python3 scripts/kanbanzone_api.py update-card --id 42 --description "Updated scope and timeline"
+python3 scripts/kanban_zone_api.py update-card --id 42 --description "Updated scope and timeline"
 
 # Update a card's description from a file
-python3 scripts/kanbanzone_api.py update-card --id 42 --description-file /tmp/desc.txt
+python3 scripts/kanban_zone_api.py update-card --id 42 --description-file /tmp/desc.txt
 
 # Flag a card as blocked
-python3 scripts/kanbanzone_api.py update-card --id 42 --blocked true \
+python3 scripts/kanban_zone_api.py update-card --id 42 --blocked true \
   --blocked-reason "Waiting on client approval"
 
 # Move a card to a new column
-python3 scripts/kanbanzone_api.py move-card --id 42 --column-id def456
+python3 scripts/kanban_zone_api.py move-card --id 42 --column-id def456
 
 # Assign an owner
-python3 scripts/kanbanzone_api.py update-card --id 42 --owner sarah@company.com
+python3 scripts/kanban_zone_api.py update-card --id 42 --owner sarah@company.com
 
 # Update a mirrored card (specify the board it's mirrored on)
-python3 scripts/kanbanzone_api.py update-card --id 42 --title "Revised title" --mirror-board board123
+python3 scripts/kanban_zone_api.py update-card --id 42 --title "Revised title" --mirror-board board123
 ```
 
 ### Card Links
 
 ```bash
 # Link two related cards together
-python3 scripts/kanbanzone_api.py link-card --id 42 --card 99
+python3 scripts/kanban_zone_api.py link-card --id 42 --card 99
 
 # Link a card to an external resource (contract, proposal, shared doc)
-python3 scripts/kanbanzone_api.py link-card --id 42 \
+python3 scripts/kanban_zone_api.py link-card --id 42 \
   --url "https://docs.google.com/document/d/abc123" \
   --title "Client proposal" --type external
 
 # Remove a card link
-python3 scripts/kanbanzone_api.py unlink-card --id 42 --card 99
+python3 scripts/kanban_zone_api.py unlink-card --id 42 --card 99
 
 # Remove a URL link
-python3 scripts/kanbanzone_api.py unlink-card --id 42 --url "https://..."
+python3 scripts/kanban_zone_api.py unlink-card --id 42 --url "https://..."
 ```
 
 ### Filtering & Search
 
 ```bash
 # Filter cards on a board by label, owner, or status
-python3 scripts/kanbanzone_api.py cards --label "Urgent" --owner "sarah@company.com" --blocked
-python3 scripts/kanbanzone_api.py cards --column "In Progress" --priority 1
-python3 scripts/kanbanzone_api.py cards --query "onboarding"
+python3 scripts/kanban_zone_api.py cards --label "Urgent" --owner "sarah@company.com" --blocked
+python3 scripts/kanban_zone_api.py cards --column "In Progress" --priority 1
+python3 scripts/kanban_zone_api.py cards --query "onboarding"
 
 # Search cards across ALL boards
-python3 scripts/kanbanzone_api.py search-cards --query "renewal" --label "Sales"
+python3 scripts/kanban_zone_api.py search-cards --query "renewal" --label "Sales"
 
 # Search across all boards, including archived cards
-python3 scripts/kanbanzone_api.py search-cards --query "renewal" --include-archived
+python3 scripts/kanban_zone_api.py search-cards --query "renewal" --include-archived
 ```
 
 ### Batch Operations
@@ -199,7 +199,7 @@ python3 scripts/kanbanzone_api.py search-cards --query "renewal" --include-archi
 Create multiple cards at once from a JSON file:
 
 ```bash
-python3 scripts/kanbanzone_api.py create-cards --file cards.json
+python3 scripts/kanban_zone_api.py create-cards --file cards.json
 ```
 
 File format:
@@ -239,7 +239,7 @@ All commands output JSON. Use `--board <id>` to override the default board from 
 
 ## Column States
 
-KanbanZone columns have a state that describes where cards are in the workflow:
+Kanban Zone columns have a state that describes where cards are in the workflow:
 
 | State | Meaning |
 |-------|---------|

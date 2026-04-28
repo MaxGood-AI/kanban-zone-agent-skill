@@ -2,17 +2,17 @@
 
 ## Overview
 
-This repository contains a Claude Skill for interacting with KanbanZone kanban boards. It is a single-file Python CLI (`scripts/kanbanzone_api.py`) using only the Python standard library.
+This repository contains a Claude Skill for interacting with Kanban Zone kanban boards. It is a single-file Python CLI (`scripts/kanban_zone_api.py`) using only the Python standard library.
 
 ## File Roles
 
 - **SKILL.md** -- Claude Skill definition file. This is what Claude Code reads when the skill is invoked. It describes available commands, workflows, and configuration. Keep it in sync with the actual CLI capabilities.
-- **scripts/kanbanzone_api.py** -- The CLI implementation. All commands output JSON to stdout.
-- **references/api-reference.md** -- KanbanZone Public API v1.3 documentation. Use this as the source of truth for endpoints, request/response models, and field definitions.
+- **scripts/kanban_zone_api.py** -- The CLI implementation. All commands output JSON to stdout.
+- **references/api-reference.md** -- Kanban Zone Public API v1.3 documentation. Use this as the source of truth for endpoints, request/response models, and field definitions.
 
 ## Adding a New Command
 
-1. Write a `cmd_<name>(args)` handler function in `scripts/kanbanzone_api.py`.
+1. Write a `cmd_<name>(args)` handler function in `scripts/kanban_zone_api.py`.
 2. Add a subparser for the command in `build_parser()`.
 3. Add the command name and handler to the `commands` dict in `main()`.
 4. Update `SKILL.md` to document the new command in both the Quick Start examples and the Script Reference table.
@@ -20,8 +20,8 @@ This repository contains a Claude Skill for interacting with KanbanZone kanban b
 ## Environment Setup
 
 Two environment variables are required:
-- `KANBANZONE_API_KEY` -- Raw API key from KanbanZone (Settings > Organization Settings > Integrations > API Key). The script Base64-encodes it automatically.
-- `KANBANZONE_BOARD_ID` -- Default board public ID. Can be overridden per command with `--board`.
+- `KANBAN_ZONE_API_KEY` -- Raw API key from Kanban Zone (Settings > Organization Settings > Integrations > API Key). The script Base64-encodes it automatically.
+- `KANBAN_ZONE_BOARD_ID` -- Default board public ID. Can be overridden per command with `--board`.
 
 ## Code Style
 
@@ -32,13 +32,13 @@ Two environment variables are required:
 
 ## Testing
 
-There is no test suite. To verify changes, run commands against a real KanbanZone board with valid credentials:
+There is no test suite. To verify changes, run commands against a real Kanban Zone board with valid credentials:
 ```bash
-export KANBANZONE_API_KEY="your-key"
-export KANBANZONE_BOARD_ID="your-board-id"
-python3 scripts/kanbanzone_api.py boards
-python3 scripts/kanbanzone_api.py board --include-columns
-python3 scripts/kanbanzone_api.py cards
+export KANBAN_ZONE_API_KEY="your-key"
+export KANBAN_ZONE_BOARD_ID="your-board-id"
+python3 scripts/kanban_zone_api.py boards
+python3 scripts/kanban_zone_api.py board --include-columns
+python3 scripts/kanban_zone_api.py cards
 ```
 
 ## Commit Style
@@ -46,7 +46,7 @@ python3 scripts/kanbanzone_api.py cards
 - **Subject line**: short imperative verb phrase under ~72 chars (e.g., `Fix oversized content chunks`). Start with a verb: `Add`, `Fix`, `Update`.
 - **Body** (for non-trivial changes): use markdown formatting with `## Problem`, `## Solution`, and `## Verified` sections to explain *why* the change was made, *what* was done, and *how* it was validated. If the change adds or modifies environment variables, note the impact in the body.
 - **Trivial changes**: only typo corrections are considered trivial and may omit the body. All other changes deserve the full message format.
-- **KanbanZone**: append the relevant Roadmap board card URL (e.g., `https://kanbanzone.io/b/QJxJGohF/c/298`) as the last line before `Co-Authored-By`.
+- **Kanban Zone**: append the relevant Roadmap board card URL (e.g., `https://kanbanzone.io/b/QJxJGohF/c/298`) as the last line before `Co-Authored-By`.
 - **Co-authorship**: when AI-assisted, end with `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>` (or the model used).
 
 ## API Notes

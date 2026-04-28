@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""KanbanZone API CLI client.
+"""Kanban Zone API CLI client.
 
 Self-contained client using only Python standard library.
 All output is JSON.
 
 Environment variables (auto-loaded from .env if not in environment):
-    KANBANZONE_API_KEY  — Raw API key (Base64-encoded automatically)
-    KANBANZONE_BOARD_ID — Default board public ID
+    KANBAN_ZONE_API_KEY  — Raw API key (Base64-encoded automatically)
+    KANBAN_ZONE_BOARD_ID — Default board public ID
 """
 
 import argparse
@@ -26,13 +26,13 @@ _env_loaded = False
 
 
 def _load_env_file():
-    """Load KANBANZONE_* variables from .env if not already in the environment."""
+    """Load KANBAN_ZONE_* variables from .env if not already in the environment."""
     global _env_loaded
     if _env_loaded:
         return
     _env_loaded = True
 
-    if os.environ.get("KANBANZONE_API_KEY"):
+    if os.environ.get("KANBAN_ZONE_API_KEY"):
         return
 
     candidates = []
@@ -69,28 +69,28 @@ def _load_env_file():
                     key, _, value = line.partition("=")
                     key = key.strip()
                     value = value.strip().strip("'\"")
-                    if key.startswith("KANBANZONE_"):
+                    if key.startswith("KANBAN_ZONE_"):
                         os.environ.setdefault(key, value)
             break
 
 
 def get_api_key():
     _load_env_file()
-    raw = os.environ.get("KANBANZONE_API_KEY")
+    raw = os.environ.get("KANBAN_ZONE_API_KEY")
     if not raw:
-        error_exit("KANBANZONE_API_KEY environment variable is not set")
+        error_exit("KANBAN_ZONE_API_KEY environment variable is not set")
     return base64.b64encode(raw.encode()).decode()
 
 
 def get_default_board():
     _load_env_file()
-    return os.environ.get("KANBANZONE_BOARD_ID")
+    return os.environ.get("KANBAN_ZONE_BOARD_ID")
 
 
 def require_board(args):
     board = args.board or get_default_board()
     if not board:
-        error_exit("Board ID required. Use --board or set KANBANZONE_BOARD_ID")
+        error_exit("Board ID required. Use --board or set KANBAN_ZONE_BOARD_ID")
     return board
 
 
@@ -489,10 +489,10 @@ def add_filter_args(parser):
 
 def build_parser():
     parser = argparse.ArgumentParser(
-        prog="kanbanzone_api",
-        description="KanbanZone API CLI client. All output is JSON.",
+        prog="kanban_zone_api",
+        description="Kanban Zone API CLI client. All output is JSON.",
     )
-    parser.add_argument("--board", help="Board public ID (overrides KANBANZONE_BOARD_ID)")
+    parser.add_argument("--board", help="Board public ID (overrides KANBAN_ZONE_BOARD_ID)")
 
     sub = parser.add_subparsers(dest="command", help="Available commands")
 

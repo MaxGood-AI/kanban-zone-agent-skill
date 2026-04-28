@@ -1,4 +1,4 @@
-# KanbanZone Public API Reference (v1.3)
+# Kanban Zone Public API Reference (v1.3)
 
 **Base URL:** `https://integrations.kanbanzone.io/v1/`
 **Protocol:** HTTPS only
