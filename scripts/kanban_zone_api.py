@@ -77,6 +77,9 @@ def build_parser():
     from kz import checklists  # noqa: E402
     checklists.register(sub)
 
+    from kz import tasks  # noqa: E402
+    tasks.register(sub)
+
     return parser
 
 
