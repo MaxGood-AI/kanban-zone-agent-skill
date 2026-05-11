@@ -89,6 +89,95 @@ def cmd_metrics(args, ctx):
     kz_output.print_json(resp, pretty=ctx.pretty)
 
 
+def _parse_custom_fields(raw_list):
+    out = []
+    for raw in raw_list or []:
+        if "=" not in raw:
+            raise ValueError(f"--custom-field must be Key=Value, got {raw!r}")
+        k, v = raw.split("=", 1)
+        out.append({"label": k.strip(), "value": v.strip()})
+    return out
+
+
+def _read_description(args):
+    if getattr(args, "description_file", None):
+        with open(args.description_file) as f:
+            return f.read()
+    return getattr(args, "description", None)
+
+
+def _card_input(args, include_title=True):
+    body = {}
+    if include_title and getattr(args, "title", None):
+        body["title"] = args.title
+    desc = _read_description(args)
+    if desc is not None:
+        body["description"] = desc
+    for src, dst in [("column_id", "columnId"), ("owner", "owner"),
+                     ("priority", "priority"), ("label", "label"),
+                     ("size", "size"), ("due_at", "dueAt"),
+                     ("blocked_reason", "blockedReason"),
+                     ("template_id", "templateId")]:
+        v = getattr(args, src, None)
+        if v is not None:
+            body[dst] = v
+    blocked = getattr(args, "blocked", None)
+    if blocked is True:
+        body["blocked"] = True
+    elif blocked is False and "blocked" in vars(args):
+        # explicit false from update - only include if user passed --blocked false
+        pass
+    if getattr(args, "watcher", None):
+        body["watchers"] = list(args.watcher)
+    cf = _parse_custom_fields(getattr(args, "custom_field", None))
+    if cf:
+        body["customFields"] = cf
+    return body
+
+
+def cmd_create(args, ctx):
+    board = _require_board(ctx)
+    body = {"board": board, "addToTop": bool(getattr(args, "add_to_top", False)),
+            "cards": [_card_input(args, include_title=True)]}
+    resp = kz_http.api_request("POST", "/cards", body=body)
+    kz_output.print_json(resp, pretty=ctx.pretty)
+
+
+def cmd_create_bulk(args, ctx):
+    with open(args.file) as f:
+        payload = __import__("json").load(f)
+    if "board" not in payload:
+        payload["board"] = _require_board(ctx)
+    resp = kz_http.api_request("POST", "/cards", body=payload)
+    kz_output.print_json(resp, pretty=ctx.pretty)
+
+
+def cmd_update(args, ctx):
+    board = _require_board(ctx)
+    oid = _resolve(ctx, args.id)
+    body = _card_input(args, include_title=True)
+    body["board"] = board
+    resp = kz_http.api_request("PATCH", f"/cards/{oid}", body=body)
+    kz_output.print_json(resp, pretty=ctx.pretty)
+
+
+def cmd_move(args, ctx):
+    board = _require_board(ctx)
+    oid = _resolve(ctx, args.id)
+    body = {"board": board, "columnId": args.column_id,
+            "addToTop": bool(getattr(args, "add_to_top", False))}
+    resp = kz_http.api_request("POST", f"/cards/{oid}/move", body=body)
+    kz_output.print_json(resp, pretty=ctx.pretty)
+
+
+def cmd_delete(args, ctx):
+    board = _require_board(ctx)
+    oid = _resolve(ctx, args.id)
+    kz_http.api_request("DELETE", f"/cards/{oid}", params={"board": board})
+    ctx.cache.invalidate_card(board, oid)
+    kz_output.print_json({"deleted": True, "id": oid}, pretty=ctx.pretty)
+
+
 def register(subparsers):
     g = subparsers.add_parser("cards", help="Card CRUD, history, metrics, links, search.")
     sub = g.add_subparsers(dest="subcommand")
@@ -119,3 +208,51 @@ def register(subparsers):
     p = sub.add_parser("metrics", help="Card metrics.")
     p.add_argument("--id", required=True)
     p.set_defaults(func=cmd_metrics)
+
+    p = sub.add_parser("create", help="Create a card.")
+    p.add_argument("--title", required=True)
+    p.add_argument("--description")
+    p.add_argument("--description-file")
+    p.add_argument("--column-id")
+    p.add_argument("--owner")
+    p.add_argument("--priority")
+    p.add_argument("--label")
+    p.add_argument("--size")
+    p.add_argument("--due-at")
+    p.add_argument("--blocked", action="store_true")
+    p.add_argument("--blocked-reason")
+    p.add_argument("--add-to-top", action="store_true")
+    p.add_argument("--watcher", action="append", default=[])
+    p.add_argument("--custom-field", action="append", default=[])
+    p.add_argument("--template-id")
+    p.set_defaults(func=cmd_create)
+
+    p = sub.add_parser("create-bulk", help="Create many cards from a JSON file.")
+    p.add_argument("--file", required=True)
+    p.set_defaults(func=cmd_create_bulk)
+
+    p = sub.add_parser("update", help="Update a card by --id (number or OID).")
+    p.add_argument("--id", required=True)
+    p.add_argument("--title")
+    p.add_argument("--description")
+    p.add_argument("--description-file")
+    p.add_argument("--owner")
+    p.add_argument("--priority")
+    p.add_argument("--label")
+    p.add_argument("--size")
+    p.add_argument("--due-at")
+    p.add_argument("--blocked", type=lambda s: s.lower() == "true", default=None)
+    p.add_argument("--blocked-reason")
+    p.add_argument("--watcher", action="append", default=[])
+    p.add_argument("--custom-field", action="append", default=[])
+    p.set_defaults(func=cmd_update)
+
+    p = sub.add_parser("move", help="Move a card to a column.")
+    p.add_argument("--id", required=True)
+    p.add_argument("--column-id", required=True)
+    p.add_argument("--add-to-top", action="store_true")
+    p.set_defaults(func=cmd_move)
+
+    p = sub.add_parser("delete", help="Delete a card by --id.")
+    p.add_argument("--id", required=True)
+    p.set_defaults(func=cmd_delete)
