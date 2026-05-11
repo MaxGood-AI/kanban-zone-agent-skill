@@ -80,6 +80,9 @@ def build_parser():
     from kz import tasks  # noqa: E402
     tasks.register(sub)
 
+    from kz import tokens  # noqa: E402
+    tokens.register(sub)
+
     return parser
 
 
