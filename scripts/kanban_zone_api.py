@@ -68,6 +68,9 @@ def build_parser():
     from kz import boards  # noqa: E402
     boards.register(sub)
 
+    from kz import cards  # noqa: E402
+    cards.register(sub)
+
     return parser
 
 
