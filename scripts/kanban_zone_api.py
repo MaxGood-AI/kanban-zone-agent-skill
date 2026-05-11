@@ -71,6 +71,9 @@ def build_parser():
     from kz import cards  # noqa: E402
     cards.register(sub)
 
+    from kz import comments  # noqa: E402
+    comments.register(sub)
+
     return parser
 
 
