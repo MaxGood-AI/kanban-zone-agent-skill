@@ -89,6 +89,9 @@ def build_parser():
     from kz import reports  # noqa: E402
     reports.register(sub)
 
+    from kz import legacy  # noqa: E402
+    legacy.register(sub)
+
     return parser
 
 
