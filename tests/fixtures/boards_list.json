@@ -1,0 +1,12 @@
+{
+  "count": 1,
+  "boards": [
+    {
+      "publicId": "BOARD1",
+      "name": "Roadmap",
+      "isArchived": false,
+      "activeCardsCount": 12,
+      "blockedCardsCount": 1
+    }
+  ]
+}

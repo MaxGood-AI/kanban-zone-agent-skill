@@ -65,6 +65,9 @@ def build_parser():
     from kz import org  # noqa: E402
     org.register(sub)
 
+    from kz import boards  # noqa: E402
+    boards.register(sub)
+
     return parser
 
 
