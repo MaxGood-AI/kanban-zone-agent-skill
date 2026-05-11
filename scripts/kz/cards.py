@@ -178,6 +178,100 @@ def cmd_delete(args, ctx):
     kz_output.print_json({"deleted": True, "id": oid}, pretty=ctx.pretty)
 
 
+def _links_payload(action, args):
+    if args.card is not None:
+        item = {"card": int(args.card)}
+        if action == "add":
+            item["type"] = args.type or "related"
+        return {action: [item]}
+    if args.url:
+        item = {"url": args.url}
+        if action == "add":
+            item["title"] = args.title or args.url
+            item["type"] = args.type or "external"
+        return {action: [item]}
+    raise ValueError("Provide either --card or --url")
+
+
+def cmd_links_add(args, ctx):
+    board = _require_board(ctx)
+    oid = _resolve(ctx, args.id)
+    body = {"board": board, "links": _links_payload("add", args)}
+    resp = kz_http.api_request("PATCH", f"/cards/{oid}", body=body)
+    kz_output.print_json(resp, pretty=ctx.pretty)
+
+
+def cmd_links_remove(args, ctx):
+    board = _require_board(ctx)
+    oid = _resolve(ctx, args.id)
+    body = {"board": board, "links": _links_payload("remove", args)}
+    resp = kz_http.api_request("PATCH", f"/cards/{oid}", body=body)
+    kz_output.print_json(resp, pretty=ctx.pretty)
+
+
+def _fetch_all_cards(board, include_archived=False):
+    page = 1
+    out = []
+    while True:
+        resp = kz_http.api_request("GET", "/cards", params={
+            "board": board, "page": page, "count": 100,
+            "includeArchived": include_archived,
+        }) or {}
+        out.extend(resp.get("cards", []))
+        if not resp.get("hasMore"):
+            break
+        page += 1
+    return out
+
+
+def cmd_search(args, ctx):
+    boards_resp = kz_http.api_request("GET", "/boards",
+                                       params={"includeArchived": False}) or {}
+    matches = []
+    for b in boards_resp.get("boards", []):
+        cards = _fetch_all_cards(b["publicId"])
+        filtered = _filter_cards(
+            cards, label=args.label, owner=args.owner, query=args.query,
+        )
+        for c in filtered:
+            c2 = dict(c)
+            c2["_board"] = b["publicId"]
+            c2["_boardName"] = b.get("name")
+            matches.append(c2)
+    kz_output.print_json({"count": len(matches), "cards": matches},
+                          pretty=ctx.pretty)
+
+
+def cmd_wip_check(args, ctx):
+    board = _require_board(ctx)
+    board_resp = kz_http.api_request("GET", f"/boards/{board}", params={
+        "includeColumns": True, "includeMembers": False,
+        "includeLabels": False, "includeCustomFields": False,
+    }) or {}
+    cards = _fetch_all_cards(board)
+    counts = {}
+    for c in cards:
+        cid = c.get("columnId") or c.get("column")
+        counts[cid] = counts.get(cid, 0) + 1
+    report = []
+    for col in board_resp.get("columns", []):
+        cid = col.get("_id") or col.get("columnId")
+        n = counts.get(cid, 0)
+        min_w = col.get("minWIP") or 0
+        max_w = col.get("maxWIP") or 0
+        status = "ok"
+        if max_w and n > max_w:
+            status = "violation"
+        elif min_w and n < min_w:
+            status = "below_min"
+        report.append({
+            "columnId": cid, "title": col.get("title"),
+            "current": n, "minWIP": min_w, "maxWIP": max_w, "status": status,
+        })
+    kz_output.print_json({"board": board, "columns": report},
+                          pretty=ctx.pretty)
+
+
 def register(subparsers):
     g = subparsers.add_parser("cards", help="Card CRUD, history, metrics, links, search.")
     sub = g.add_subparsers(dest="subcommand")
@@ -256,3 +350,26 @@ def register(subparsers):
     p = sub.add_parser("delete", help="Delete a card by --id.")
     p.add_argument("--id", required=True)
     p.set_defaults(func=cmd_delete)
+
+    p = sub.add_parser("links-add", help="Add a card-to-card or URL link.")
+    p.add_argument("--id", required=True)
+    p.add_argument("--card", type=int)
+    p.add_argument("--url")
+    p.add_argument("--title")
+    p.add_argument("--type", default=None)
+    p.set_defaults(func=cmd_links_add)
+
+    p = sub.add_parser("links-remove", help="Remove a card-to-card or URL link.")
+    p.add_argument("--id", required=True)
+    p.add_argument("--card", type=int)
+    p.add_argument("--url")
+    p.set_defaults(func=cmd_links_remove)
+
+    p = sub.add_parser("search", help="Cross-board card search.")
+    p.add_argument("--query")
+    p.add_argument("--label")
+    p.add_argument("--owner")
+    p.set_defaults(func=cmd_search)
+
+    p = sub.add_parser("wip-check", help="Compare counts to per-column WIP limits.")
+    p.set_defaults(func=cmd_wip_check)
