@@ -83,6 +83,9 @@ def build_parser():
     from kz import tokens  # noqa: E402
     tokens.register(sub)
 
+    from kz import webhooks  # noqa: E402
+    webhooks.register(sub)
+
     return parser
 
 
