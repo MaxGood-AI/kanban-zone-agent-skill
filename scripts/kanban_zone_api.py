@@ -62,12 +62,8 @@ def build_parser():
     sub = parser.add_subparsers(dest="group")
     sub.required = True
 
-    # Resource registrations are added in later tasks:
-    # from kz import boards, cards, comments, ...
-    # boards.register(sub)
-    # cards.register(sub)
-    # ...
-    # legacy.register(sub)
+    from kz import org  # noqa: E402
+    org.register(sub)
 
     return parser
 
