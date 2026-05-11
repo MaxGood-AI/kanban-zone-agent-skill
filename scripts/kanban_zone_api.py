@@ -74,6 +74,9 @@ def build_parser():
     from kz import comments  # noqa: E402
     comments.register(sub)
 
+    from kz import checklists  # noqa: E402
+    checklists.register(sub)
+
     return parser
 
 
