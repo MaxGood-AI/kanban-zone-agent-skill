@@ -8,11 +8,10 @@ Manage your [Kanban Zone](https://kanbanzone.com) boards — cards, columns, com
 
 ```bash
 # Clone the skill into your project's skills/ directory (or anywhere on your path)
-git clone https://github.com/MaxGoodWork/kanban-zone skills/kanban-zone
-
-# If you use Claude Code's plugin system:
-claude plugin add skills/kanban-zone
+git clone https://github.com/MaxGood-AI/kanban-zone-agent-skill skills/kanban-zone
 ```
+
+The skill is invoked directly via `python3 scripts/kanban_zone_api.py ...` — no plugin registration step is required.
 
 **Requirements:** Python 3.8 or later (verify with `python3 --version`).
 
@@ -58,7 +57,7 @@ python3 scripts/kanban_zone_api.py cards create \
   --column-id COL_ABC123 \
   --owner sarah@company.com \
   --watcher cfo@company.com \
-  --priority 1 --label "Sales" --size M --due "09/30/2026" \
+  --priority 1 --label "Sales" --size M --due-at "09/30/2026" \
   --custom-field "Client=Acme Corp" \
   --custom-field "Region=Northeast"
 ```
@@ -123,17 +122,16 @@ python3 scripts/kanban_zone_api.py tasks update --id 1001 --completed true
 Subscribe to card-created events, then use the built-in HMAC verifier to confirm the first delivery is authentic.
 
 ```bash
-# Register the webhook
+# Register the webhook (set the org-level Webhook Key in Kanban Zone Settings → Integrations first)
 python3 scripts/kanban_zone_api.py webhooks create \
   --url "https://hooks.yourapp.com/kanban" \
-  --event card.created \
-  --secret "your-shared-secret"
+  --event CARD_CREATED
 
-# After the first delivery arrives, verify its signature
+# After the first delivery arrives, verify its signature (key from KZ_WEBHOOK_KEY env or --webhook-key)
 python3 scripts/kanban_zone_api.py webhooks verify-signature \
   --payload-file /tmp/webhook-body.json \
-  --signature "sha256=<value-from-X-KZ-Signature-header>" \
-  --secret "your-shared-secret"
+  --signature "<raw-hex-from-X-KanbanZone-Signature-header>" \
+  --webhook-key "your-webhook-key"
 ```
 
 ### 8. Pull a throughput report for the last quarter
@@ -149,14 +147,13 @@ Other available report types: `arrival-rate`, `cycle-time`, `lead-time`, `flow`,
 
 ### 9. Audit overdue cards across all boards
 
-Search the whole organisation for cards marked overdue, regardless of which board they live on.
+Search across every board you can access for cards matching a label, owner, or free-text query.
 
 ```bash
-python3 scripts/kanban_zone_api.py cards search \
-  --query "" --overdue --include-archived
+# cards search supports --query / --label / --owner across all boards.
+# The skill iterates every board and applies these filters client-side.
+python3 scripts/kanban_zone_api.py cards search --label "Bug"
 ```
-
-Pipe the JSON output to `jq '.[] | {id, title, board}' ` for a quick triage list.
 
 ### 10. Bulk-create cards from a JSON file
 
@@ -189,9 +186,9 @@ All commands output JSON and accept `--board <id>` to override the default board
 - **API v1.4 coverage** — comments, checklists, tasks, tokens, webhooks, and eight flow-metric report types, all missing from v2.
 - **Grouped CLI** — nine resource groups (`boards`, `cards`, `comments`, …) replace the flat monolithic surface, making discovery and tab-completion practical.
 - **Hidden legacy aliases** — every v2 flat command (`create-card`, `move-card`, etc.) still works as a hidden alias so existing scripts need no changes.
-- **Bidirectional ID cache** — card numbers and IDs resolve symmetrically; the cache is invalidated automatically when tracked files change.
+- **Bidirectional ID cache** — card numbers and ObjectIds resolve symmetrically. The cache is a persistent JSON file populated opportunistically by every list/get response. Use `--no-cache` to bypass it for a single call.
 - **Silent endpoint migration** — deprecated API endpoints redirect transparently; no consumer code changes required.
-- **Signature verifier** — `webhooks verify-signature` provides HMAC-SHA256 delivery verification with a single command.
+- **Signature verifier** — `webhooks verify-signature` provides HMAC-SHA1 delivery verification with a single command.
 - **≥ 95 % test coverage** — enforced as a hard quality gate; `make coverage` reports the current figure.
 
 Full history: see [`CHANGELOG.md`](CHANGELOG.md).

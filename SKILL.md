@@ -180,8 +180,8 @@ Register and manage webhooks for board event notifications.
 
 ```bash
 python3 scripts/kanban_zone_api.py webhooks list
-python3 scripts/kanban_zone_api.py webhooks create --url https://hooks.example.com/kz --events card.moved,card.created
-python3 scripts/kanban_zone_api.py webhooks verify-signature --payload-file /tmp/payload.json --signature SHA256=...
+python3 scripts/kanban_zone_api.py webhooks create --url https://hooks.example.com/kz --event CARD_MOVED
+python3 scripts/kanban_zone_api.py webhooks verify-signature --payload-file /tmp/payload.json --signature <raw-hex-value-from-X-KanbanZone-Signature-header>
 ```
 
 | Subcommand | Description |
@@ -189,7 +189,7 @@ python3 scripts/kanban_zone_api.py webhooks verify-signature --payload-file /tmp
 | `list` | List all registered webhooks for the active board |
 | `get` | Get details of a specific webhook by ObjectId |
 | `create` | Register a new webhook endpoint with selected event types |
-| `update` | Update a webhook's URL, secret, or event subscriptions |
+| `update` | Update a webhook's URL or event subscription |
 | `delete` | Delete a webhook registration |
 | `test` | Send a test ping to a registered webhook |
 | `verify-signature` | Verify an incoming webhook delivery's HMAC signature |
@@ -217,11 +217,11 @@ python3 scripts/kanban_zone_api.py reports flow-efficiency
 
 ### tokens
 
-Manage per-integration API tokens (used for webhook signature verification and scoped integrations).
+Manage card share tokens — named tokens defined in Organization Settings (Settings → Integrations → Card Tokens) that are assigned to cards to control card visibility and external sharing.
 
 ```bash
 python3 scripts/kanban_zone_api.py tokens list
-python3 scripts/kanban_zone_api.py tokens assign --name "CI integration"
+python3 scripts/kanban_zone_api.py tokens assign --card 42 --token-id <token-definition-id>
 python3 scripts/kanban_zone_api.py tokens revoke --id TOKEN_ID
 ```
 
@@ -305,11 +305,9 @@ Store `kanbanzone-cache.json` in your persistent memory directory with this stru
       "columns": {
         "<column-id>": { "name": "Column Name", "state": "In Progress" }
       },
-      "byNumber": {
-        "42": "507f1f77bcf86cd799439011"
-      },
-      "byObjectId": {
-        "507f1f77bcf86cd799439011": 42
+      "cards": {
+        "byNumber":   { "42": "507f1f77bcf86cd799439011" },
+        "byObjectId": { "507f1f77bcf86cd799439011": 42 }
       }
     }
   },
@@ -390,7 +388,7 @@ All commands output JSON. Run `python3 scripts/kanban_zone_api.py --help` for fu
 | `webhooks` | `list` | List all registered webhooks |
 | `webhooks` | `get` | Get a specific webhook by ObjectId |
 | `webhooks` | `create` | Register a new webhook endpoint |
-| `webhooks` | `update` | Update a webhook's URL, secret, or events |
+| `webhooks` | `update` | Update a webhook's URL or event |
 | `webhooks` | `delete` | Delete a webhook registration |
 | `webhooks` | `test` | Send a test ping to a webhook |
 | `webhooks` | `verify-signature` | Verify an incoming webhook delivery's HMAC signature |

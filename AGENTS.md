@@ -23,7 +23,7 @@ scripts/
 │   ├── tasks.py                # task, create-task, update-task, delete-task, move-task
 │   ├── tokens.py               # assign-token, revoke-token, tokens
 │   ├── webhooks.py             # webhook, create-webhook, delete-webhook + signature verification
-│   ├── reports.py              # 8 report commands (daily, weekly, time-tracking, etc.)
+│   ├── reports.py              # 8 report commands (throughput, arrival-rate, cycle-time, lead-time, flow, flow-efficiency, allocation, abandoned-effort)
 │   ├── org.py                  # me, context (organization info)
 │   └── legacy.py               # v2 backward-compatibility aliases
 ├── kanban_zone_api.py          # CLI entry point; argument parsing and dispatch
@@ -69,7 +69,7 @@ tests/
 - **tasks.py**: Task CRUD — create, read, update, delete, and move tasks within checklists.
 - **tokens.py**: Token (user assignment) management — assign tokens to cards, revoke, list assigned.
 - **webhooks.py**: Webhook CRUD and signature verification. Supports event subscription and HMAC-SHA1 signature validation.
-- **reports.py**: 8 report commands (daily activity, weekly summary, time tracking, burndown, etc.) that aggregate board data.
+- **reports.py**: 8 reports (throughput, arrival-rate, cycle-time, lead-time, flow, flow-efficiency, allocation, abandoned-effort) wrapping the Kanban Zone reports API at /boards/{publicId}/reports/{type}.
 - **org.py**: Organization context — `me` (current user) and `context` (org info).
 - **legacy.py**: v2 backward-compatibility wrappers. Accepts v2 CLI syntax (e.g., integer card IDs) and wraps v3 handlers.
 
