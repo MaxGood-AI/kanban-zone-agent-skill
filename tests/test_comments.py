@@ -64,6 +64,13 @@ class TestComments(unittest.TestCase):
         with self.assertRaises(ValueError):
             kz_comments.cmd_add(_ns(card="42", text=None, text_file=None), ctx)
 
+    def test_resolve_requires_board(self):
+        """_resolve raises ValueError when board is falsy (line 9)."""
+        ctx = _Ctx()
+        ctx.board = None
+        with self.assertRaises(ValueError):
+            kz_comments.cmd_list(_ns(card="42"), ctx)
+
 
 if __name__ == "__main__":
     unittest.main()

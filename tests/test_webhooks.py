@@ -129,6 +129,48 @@ class TestVerifySignature(unittest.TestCase):
                 signature=self.good,
             ), _Ctx())
 
+    def test_webhook_key_arg_takes_precedence_over_env(self):
+        """--webhook-key overrides KZ_WEBHOOK_KEY env var (line 51 branch)."""
+        os.environ["KZ_WEBHOOK_KEY"] = "wrong-key"
+        try:
+            buf = io.StringIO()
+            with patch("sys.stdout", buf):
+                rc = kz_webhooks.cmd_verify_signature(_ns(
+                    webhook_key=self.key,  # explicit arg wins
+                    payload_file=self.payload_path,
+                    signature=self.good,
+                ), _Ctx())
+            self.assertEqual(rc, 0)
+        finally:
+            os.environ.pop("KZ_WEBHOOK_KEY")
+
+
+class TestWebhooksMissingBoard(unittest.TestCase):
+    def test_create_requires_board(self):
+        """cmd_create raises ValueError when board is falsy (line 22)."""
+        ctx = _Ctx()
+        ctx.board = None
+        with self.assertRaises(ValueError):
+            kz_webhooks.cmd_create(_ns(
+                event="CARD_CREATED", url="https://h.example/wh",
+            ), ctx)
+
+    def test_update_no_fields_raises(self):
+        """cmd_update raises ValueError when neither --url nor --event is given (lines 30-35)."""
+        with self.assertRaises(ValueError):
+            kz_webhooks.cmd_update(_ns(id=HOOK_ID, url=None, event=None), _Ctx())
+
+    def test_update_with_event_only(self):
+        """cmd_update with only --event set (line 32 branch)."""
+        with FakeApi() as fake:
+            fake.expect("PUT", f"/webhooks/{HOOK_ID}", body={
+                "event": "CARD_MOVED",
+            }).returns({"_id": HOOK_ID})
+            with patch("sys.stdout", io.StringIO()):
+                kz_webhooks.cmd_update(_ns(
+                    id=HOOK_ID, url=None, event="CARD_MOVED",
+                ), _Ctx())
+
 
 if __name__ == "__main__":
     unittest.main()

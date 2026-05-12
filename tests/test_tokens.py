@@ -52,6 +52,13 @@ class TestTokens(unittest.TestCase):
             with patch("sys.stdout", io.StringIO()):
                 kz_tokens.cmd_list(_ns(card="42"), ctx)
 
+    def test_resolve_card_requires_board(self):
+        """_resolve_card raises ValueError when board is falsy (line 9)."""
+        ctx = _Ctx()
+        ctx.board = None
+        with self.assertRaises(ValueError):
+            kz_tokens.cmd_list(_ns(card="42"), ctx)
+
 
 if __name__ == "__main__":
     unittest.main()

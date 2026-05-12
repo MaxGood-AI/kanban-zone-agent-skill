@@ -30,6 +30,11 @@ class TestDetectIdKind(unittest.TestCase):
         with self.assertRaises(ids.KZIdError):
             ids.detect_id_kind("")
 
+    def test_non_string_input_is_coerced(self):
+        """detect_id_kind coerces non-str to str before matching (line 20)."""
+        # integer 42 → "42" → matches number
+        self.assertEqual(ids.detect_id_kind(42), "number")
+
 
 class TestResolveCardObjectId(unittest.TestCase):
     def setUp(self):
@@ -86,6 +91,21 @@ class TestResolveCardObjectId(unittest.TestCase):
             with self.assertRaises(ids.KZIdError):
                 ids.resolve_card_object_id("999", "BOARD1", self.cache)
 
+    def test_resolve_finds_card_mid_page_and_stops(self):
+        """When card is found on page 1 without needing page 2 (lines 48->50 branch)."""
+        with FakeApi() as fake:
+            fake.expect("GET", "/cards", params={
+                "board": "BOARD1", "page": 1, "count": 100, "includeArchived": False,
+            }).returns({
+                "hasMore": True,
+                "cards": [
+                    {"_id": CARD_OID, "number": 42},
+                    {"_id": "e" * 24, "number": 43},
+                ],
+            })
+            result = ids.resolve_card_object_id("42", "BOARD1", self.cache)
+        self.assertEqual(result, CARD_OID)
+
 
 class TestResolveCardNumber(unittest.TestCase):
     def setUp(self):
@@ -113,6 +133,13 @@ class TestResolveCardNumber(unittest.TestCase):
             )
             self.assertEqual(ids.resolve_card_number(CARD_OID, "B", self.cache), 42)
             self.assertEqual(self.cache.get_card_oid("B", 42), CARD_OID)
+
+    def test_object_id_no_number_field_raises(self):
+        """resolve_card_number raises KZIdError when API response lacks 'number' (line 69)."""
+        with FakeApi() as fake:
+            fake.expect("GET", f"/cards/{CARD_OID}").returns({"_id": CARD_OID})
+            with self.assertRaises(ids.KZIdError):
+                ids.resolve_card_number(CARD_OID, "B", self.cache)
 
 
 if __name__ == "__main__":

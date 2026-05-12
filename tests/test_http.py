@@ -133,6 +133,66 @@ class TestApiRequest(unittest.TestCase):
         with self.assertRaises(kz_http.KZAuthError):
             kz_http.api_request("GET", "/x")
 
+    def test_cached_auth_header_reused(self):
+        """Calling api_request twice should reuse the cached auth header (line 33 branch)."""
+        kz_http.api_request("GET", "/x")
+        first = kz_http._cached_auth_header
+        kz_http.api_request("GET", "/x")
+        self.assertEqual(kz_http._cached_auth_header, first)
+
+    def test_set_api_token_overrides_env(self):
+        """set_api_token bypasses env var and caches the supplied token (line 49)."""
+        kz_http.set_api_token("override:token")
+        kz_http.api_request("GET", "/x")
+        import base64 as _b64
+        expected = "Basic " + _b64.b64encode(b"override:token").decode()
+        self.assertEqual(_Handler.last_request["headers"]["Authorization"], expected)
+
+    def test_params_with_none_values_omitted(self):
+        """None values in params dict are dropped before building the query string (line 64)."""
+        kz_http.api_request("GET", "/x", params={"present": "yes", "absent": None})
+        self.assertIn("present=yes", _Handler.last_request["path"])
+        self.assertNotIn("absent", _Handler.last_request["path"])
+
+    def test_url_error_raises_kzapierror(self):
+        """urllib.error.URLError (e.g. network down) is wrapped in KZApiError (lines 86-87)."""
+        import urllib.error
+        from unittest.mock import patch as _patch
+        with _patch("urllib.request.urlopen",
+                    side_effect=urllib.error.URLError("name or service not known")):
+            with self.assertRaises(kz_http.KZApiError) as cm:
+                kz_http.api_request("GET", "/x")
+        self.assertEqual(cm.exception.status, 0)
+        self.assertIn("name or service", cm.exception.body)
+
+    def test_non_json_response_raises_kzapierror(self):
+        """If server returns non-JSON on a 2xx, KZApiError is raised (lines 93-94)."""
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        import threading
+
+        class _BrokenHandler(BaseHTTPRequestHandler):
+            def log_message(self, *_a, **_kw):
+                pass
+
+            def do_GET(self):
+                self.send_response(200)
+                self.send_header("content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(b"not json!")
+
+        srv2 = HTTPServer(("127.0.0.1", 0), _BrokenHandler)
+        threading.Thread(target=srv2.serve_forever, daemon=True).start()
+        host, port = srv2.server_address
+        orig = kz_http.BASE_URL
+        kz_http.BASE_URL = f"http://{host}:{port}/v1"
+        try:
+            with self.assertRaises(kz_http.KZApiError) as cm:
+                kz_http.api_request("GET", "/x")
+            self.assertIn("non-JSON", cm.exception.body)
+        finally:
+            kz_http.BASE_URL = orig
+            srv2.shutdown()
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -81,6 +81,18 @@ class TestChecklists(unittest.TestCase):
             with patch("sys.stdout", io.StringIO()):
                 kz_chk.cmd_list(_ns(card="42"), ctx)
 
+    def test_resolve_card_requires_board(self):
+        """_resolve_card raises ValueError when board is falsy (line 9)."""
+        ctx = _Ctx()
+        ctx.board = None
+        with self.assertRaises(ValueError):
+            kz_chk.cmd_create(_ns(card="42", title="T", task=[]), ctx)
+
+    def test_update_no_body_raises(self):
+        """cmd_update raises ValueError when neither --title nor --position given (line 29)."""
+        with self.assertRaises(ValueError):
+            kz_chk.cmd_update(_ns(id=CHK_ID, title=None, position=None), _Ctx())
+
 
 if __name__ == "__main__":
     unittest.main()

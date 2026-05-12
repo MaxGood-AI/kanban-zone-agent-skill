@@ -86,6 +86,61 @@ class TestCache(unittest.TestCase):
         self.assertIn("updated", data)
         self.assertTrue(data["updated"].endswith("Z"))
 
+    def test_corrupted_cache_file_is_silently_ignored(self):
+        """OSError / JSONDecodeError on load yields an empty cache (lines 35-36)."""
+        with open(self.path, "w") as f:
+            f.write("not valid json{{{")
+        c = Cache(self.path)
+        self.assertIsNone(c.get_board("XYZ"))
+
+    def test_non_dict_cache_file_is_silently_ignored(self):
+        """If the JSON top-level is not a dict with 'boards', cache starts empty."""
+        with open(self.path, "w") as f:
+            json.dump(["not", "a", "dict"], f)
+        c = Cache(self.path)
+        self.assertIsNone(c.get_board("XYZ"))
+
+    def test_get_column_returns_none_for_unknown_board(self):
+        """get_column on a board that was never set returns None (line 64)."""
+        c = Cache(self.path)
+        self.assertIsNone(c.get_column("NOPE", "col1"))
+
+    def test_invalidate_card_no_op_for_unknown_board(self):
+        """invalidate_card on a board not in cache is a no-op (line 91)."""
+        c = Cache(self.path)
+        c.invalidate_card("GHOST", 99)  # must not raise
+
+    def test_invalidate_card_by_oid_removes_number_too(self):
+        """invalidate_card by OID also removes the number->OID mapping (lines 97-99)."""
+        c = Cache(self.path)
+        c.set_card_mapping("XYZ", 5, "a" * 24)
+        c.invalidate_card("XYZ", "a" * 24)
+        self.assertIsNone(c.get_card_oid("XYZ", 5))
+        self.assertIsNone(c.get_card_number("XYZ", "a" * 24))
+
+    def test_flush_exception_cleanup_and_reraise(self):
+        """If the atomic write fails mid-way, the tmp file is deleted and exception re-raised (lines 111-115)."""
+        c = Cache(self.path)
+        c.set_board("XYZ", "B")
+        import builtins
+        real_open = builtins.open
+        def _fail_open(name, *a, **kw):
+            if name.endswith(".json") and "w" in str(a) and not kw:
+                raise OSError("disk full")
+            return real_open(name, *a, **kw)
+        # Patch os.fdopen to raise so we exercise the exception branch
+        original_fdopen = os.fdopen
+        def _bad_fdopen(fd, *a, **kw):
+            # close fd to avoid leak, then raise
+            os.close(fd)
+            raise OSError("disk full")
+        os.fdopen = _bad_fdopen
+        try:
+            with self.assertRaises(OSError):
+                c.flush()
+        finally:
+            os.fdopen = original_fdopen
+
 
 if __name__ == "__main__":
     unittest.main()

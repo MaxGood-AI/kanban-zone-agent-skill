@@ -77,6 +77,29 @@ class TestTasks(unittest.TestCase):
                     checklist_to=DEST_CHK, position=0,
                 ), _Ctx())
 
+    def test_update_all_fields(self):
+        """cmd_update with all four fields populated (lines 21-27 branches)."""
+        with FakeApi() as fake:
+            fake.expect("PATCH", f"/tasks/{TASK_ID}", body={
+                "completed": False,
+                "description": "Updated text",
+                "position": 2,
+                "dueAt": "2026-12-31",
+            }).returns({"_id": TASK_ID})
+            with patch("sys.stdout", io.StringIO()):
+                kz_tasks.cmd_update(_ns(
+                    id=TASK_ID, completed=False, description="Updated text",
+                    position=2, due_at="2026-12-31",
+                ), _Ctx())
+
+    def test_update_no_fields_raises(self):
+        """cmd_update with no fields set raises ValueError (line 27 guard)."""
+        with self.assertRaises(ValueError):
+            kz_tasks.cmd_update(_ns(
+                id=TASK_ID, completed=None, description=None,
+                position=None, due_at=None,
+            ), _Ctx())
+
 
 if __name__ == "__main__":
     unittest.main()
