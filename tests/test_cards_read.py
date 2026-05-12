@@ -57,8 +57,8 @@ class TestCardsRead(unittest.TestCase):
             }).returns({
                 "count": 2, "totalAvailable": 2, "hasMore": False,
                 "cards": [
-                    {"number": 1, "label": "Bug", "title": "x"},
-                    {"number": 2, "label": "Feature", "title": "y"},
+                    {"_id": "a" * 24, "CardItem": {"number": 1, "label": "Bug", "title": "x"}},
+                    {"_id": "b" * 24, "CardItem": {"number": 2, "label": "Feature", "title": "y"}},
                 ],
             })
             buf = io.StringIO()
@@ -69,6 +69,28 @@ class TestCardsRead(unittest.TestCase):
                 ), _Ctx())
         self.assertIn('"number": 1', buf.getvalue())
         self.assertNotIn('"number": 2', buf.getvalue())
+
+    def test_list_client_side_filter_envelope_form(self):
+        """_filter_cards matches label inside the v1.4 CardItem envelope."""
+        with FakeApi() as fake:
+            fake.expect("GET", "/cards", params={
+                "board": "BOARD1", "page": 1, "count": 100, "includeArchived": False,
+            }).returns({
+                "count": 2, "totalAvailable": 2, "hasMore": False,
+                "cards": [
+                    {"_id": "a" * 24, "CardItem": {"number": 10, "label": "Bug", "title": "fix"}},
+                    {"_id": "b" * 24, "CardItem": {"number": 11, "label": "Feature", "title": "add"}},
+                ],
+            })
+            buf = io.StringIO()
+            with patch("sys.stdout", buf):
+                kz_cards.cmd_list(_ns(
+                    page=1, count=100, include_archived=False, days_since_last_update=None,
+                    label="Bug", owner=None, column=None, priority=None, blocked=False, query=None,
+                ), _Ctx())
+        out = buf.getvalue()
+        self.assertIn('"number": 10', out)
+        self.assertNotIn('"number": 11', out)
 
     def test_get_by_number_resolves_then_calls_oid_endpoint(self):
         ctx = _Ctx()

@@ -64,8 +64,8 @@ class TestResolveCardObjectId(unittest.TestCase):
             }).returns({
                 "count": 2, "totalAvailable": 5, "hasMore": True,
                 "cards": [
-                    {"_id": "a" * 24, "number": 7, "title": "x"},
-                    {"_id": "b" * 24, "number": 8, "title": "x"},
+                    {"_id": "a" * 24, "CardItem": {"number": 7, "title": "x"}},
+                    {"_id": "b" * 24, "CardItem": {"number": 8, "title": "x"}},
                 ],
             })
             fake.expect("GET", "/cards", params={
@@ -73,9 +73,9 @@ class TestResolveCardObjectId(unittest.TestCase):
             }).returns({
                 "count": 3, "totalAvailable": 5, "hasMore": False,
                 "cards": [
-                    {"_id": "c" * 24, "number": 41, "title": "x"},
-                    {"_id": CARD_OID, "number": 42, "title": "x"},
-                    {"_id": "d" * 24, "number": 43, "title": "x"},
+                    {"_id": "c" * 24, "CardItem": {"number": 41, "title": "x"}},
+                    {"_id": CARD_OID, "CardItem": {"number": 42, "title": "x"}},
+                    {"_id": "d" * 24, "CardItem": {"number": 43, "title": "x"}},
                 ],
             })
             result = ids.resolve_card_object_id("42", "BOARD1", self.cache)
@@ -99,12 +99,26 @@ class TestResolveCardObjectId(unittest.TestCase):
             }).returns({
                 "hasMore": True,
                 "cards": [
-                    {"_id": CARD_OID, "number": 42},
-                    {"_id": "e" * 24, "number": 43},
+                    {"_id": CARD_OID, "CardItem": {"number": 42}},
+                    {"_id": "e" * 24, "CardItem": {"number": 43}},
                 ],
             })
             result = ids.resolve_card_object_id("42", "BOARD1", self.cache)
         self.assertEqual(result, CARD_OID)
+
+    def test_resolve_card_object_id_handles_carditem_envelope(self):
+        """resolve_card_object_id correctly resolves a card in the v1.4 CardItem envelope."""
+        with FakeApi() as fake:
+            fake.expect("GET", "/cards", params={
+                "board": "BOARD1", "page": 1, "count": 100, "includeArchived": False,
+            }).returns({
+                "hasMore": False,
+                "cards": [
+                    {"_id": "x" * 24, "CardItem": {"number": 42, "title": "y"}},
+                ],
+            })
+            result = ids.resolve_card_object_id("42", "BOARD1", self.cache)
+        self.assertEqual(result, "x" * 24)
 
 
 class TestResolveCardNumber(unittest.TestCase):

@@ -7,6 +7,23 @@ import re
 
 from kz import http as kz_http
 
+
+def _unwrap_card(card):
+    """Return a flat card dict, handling the v1.4 {"_id": ..., "CardItem": {...}} envelope.
+
+    Duplicated from kz.cards to avoid a circular import (cards imports ids).
+    """
+    if not isinstance(card, dict):
+        return card
+    inner = card.get("CardItem")
+    if isinstance(inner, dict):
+        flat = dict(inner)
+        if "_id" in card and "_id" not in flat:
+            flat["_id"] = card["_id"]
+        return flat
+    return card
+
+
 _NUMBER_RE = re.compile(r"^\d+$")
 _OBJECT_ID_RE = re.compile(r"^[0-9a-fA-F]{24}$")
 
@@ -42,7 +59,8 @@ def resolve_card_object_id(value, board, cache):
             "GET", "/cards",
             params={"board": board, "page": page, "count": 100, "includeArchived": False},
         )
-        for card in (resp or {}).get("cards", []):
+        for raw_card in (resp or {}).get("cards", []):
+            card = _unwrap_card(raw_card)
             cn = card.get("number")
             oid = card.get("_id")
             if cn is not None and oid:
@@ -64,7 +82,7 @@ def resolve_card_number(value, board, cache):
     if cached is not None:
         return cached
     resp = kz_http.api_request("GET", f"/cards/{value}")
-    number = (resp or {}).get("number")
+    number = _unwrap_card(resp or {}).get("number")
     if number is None:
         raise KZIdError(f"Card {value} returned no number field")
     cache.set_card_mapping(board, number, value)

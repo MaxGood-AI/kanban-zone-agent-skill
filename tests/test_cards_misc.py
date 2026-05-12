@@ -77,11 +77,11 @@ class TestCardsSearch(unittest.TestCase):
             })
             fake.expect("GET", "/cards", params={
                 "board": "B1", "page": 1, "count": 100, "includeArchived": False,
-            }).returns({"cards": [{"number": 1, "title": "deploy soon"}],
+            }).returns({"cards": [{"_id": "a" * 24, "CardItem": {"number": 1, "title": "deploy soon"}}],
                         "hasMore": False})
             fake.expect("GET", "/cards", params={
                 "board": "B2", "page": 1, "count": 100, "includeArchived": False,
-            }).returns({"cards": [{"number": 2, "title": "buy lunch"}],
+            }).returns({"cards": [{"_id": "b" * 24, "CardItem": {"number": 2, "title": "buy lunch"}}],
                         "hasMore": False})
             buf = io.StringIO()
             with patch("sys.stdout", buf):
@@ -107,8 +107,11 @@ class TestWipCheck(unittest.TestCase):
                 "board": "BOARD1", "page": 1, "count": 100, "includeArchived": False,
             }).returns({
                 "cards": [
-                    {"columnId": "c2"}, {"columnId": "c2"}, {"columnId": "c2"},
-                    {"columnId": "c2"}, {"columnId": "c2"},
+                    {"_id": "1" * 24, "CardItem": {"columnId": "c2"}},
+                    {"_id": "2" * 24, "CardItem": {"columnId": "c2"}},
+                    {"_id": "3" * 24, "CardItem": {"columnId": "c2"}},
+                    {"_id": "4" * 24, "CardItem": {"columnId": "c2"}},
+                    {"_id": "5" * 24, "CardItem": {"columnId": "c2"}},
                 ],
                 "hasMore": False,
             })

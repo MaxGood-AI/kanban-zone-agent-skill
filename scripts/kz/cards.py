@@ -7,6 +7,24 @@ from kz import ids as kz_ids
 from kz import output as kz_output
 
 
+def _unwrap_card(card):
+    """Return a flat card dict, handling the v1.4 {"_id": ..., "CardItem": {...}} envelope.
+
+    The v1.4 /cards responses wrap each card in a CardItem envelope with _id as a
+    sibling. Legacy and test fixtures may pass already-flat dicts. This helper
+    returns a single flat dict in either case.
+    """
+    if not isinstance(card, dict):
+        return card
+    inner = card.get("CardItem")
+    if isinstance(inner, dict):
+        flat = dict(inner)
+        if "_id" in card and "_id" not in flat:
+            flat["_id"] = card["_id"]
+        return flat
+    return card
+
+
 def _require_board(ctx):
     if not ctx.board:
         raise ValueError("--board or KANBAN_ZONE_BOARD_ID is required")
@@ -18,6 +36,7 @@ def _resolve(ctx, value):
 
 
 def _get_field(card, name):
+    card = _unwrap_card(card)
     if name in card:
         return card[name]
     return (card.get("custom") or {}).get(name)
@@ -26,7 +45,8 @@ def _get_field(card, name):
 def _filter_cards(cards, label=None, owner=None, column=None, priority=None,
                   blocked=False, query=None):
     out = []
-    for c in cards:
+    for raw in cards:
+        c = _unwrap_card(raw)
         if label and _get_field(c, "label") != label:
             continue
         if owner and _get_field(c, "owner") != owner:
@@ -43,7 +63,7 @@ def _filter_cards(cards, label=None, owner=None, column=None, priority=None,
             haystack = " ".join(str(c.get(k, "")) for k in ("title", "description"))
             if query.lower() not in haystack.lower():
                 continue
-        out.append(c)
+        out.append(raw)  # preserve original envelope
     return out
 
 
@@ -250,7 +270,8 @@ def cmd_wip_check(args, ctx):
     }) or {}
     cards = _fetch_all_cards(board)
     counts = {}
-    for c in cards:
+    for raw in cards:
+        c = _unwrap_card(raw)
         cid = c.get("columnId") or c.get("column")
         counts[cid] = counts.get(cid, 0) + 1
     report = []
