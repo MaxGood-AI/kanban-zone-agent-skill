@@ -306,7 +306,8 @@ def register(subparsers):
 
     p = sub.add_parser("list", help="List cards on the active board.")
     p.add_argument("--page", type=int, default=1)
-    p.add_argument("--count", type=int, default=100)
+    p.add_argument("--count", "--limit", type=int, default=100,
+                   help="Page size (max 100). --limit is an alias.")
     p.add_argument("--include-archived", action="store_true")
     p.add_argument("--days-since-last-update", type=int, default=None)
     p.add_argument("--label")
@@ -314,7 +315,7 @@ def register(subparsers):
     p.add_argument("--column")
     p.add_argument("--priority")
     p.add_argument("--blocked", action="store_true")
-    p.add_argument("--query")
+    p.add_argument("--query", "--q", help="Free-text filter. --q is an alias.")
     p.set_defaults(func=cmd_list)
 
     p = sub.add_parser("get", help="Get one card by number or ObjectId.")
@@ -323,7 +324,7 @@ def register(subparsers):
 
     p = sub.add_parser("history", help="Card history.")
     p.add_argument("--id", required=True)
-    p.add_argument("--from-date", help="ISO date.")
+    p.add_argument("--from-date", "--from", help="ISO date. --from is an alias.")
     p.set_defaults(func=cmd_history)
 
     p = sub.add_parser("metrics", help="Card metrics.")
@@ -393,7 +394,7 @@ def register(subparsers):
     p.set_defaults(func=cmd_links_remove)
 
     p = sub.add_parser("search", help="Cross-board card search.")
-    p.add_argument("--query")
+    p.add_argument("--query", "--q", help="Free-text filter. --q is an alias.")
     p.add_argument("--label")
     p.add_argument("--owner")
     p.set_defaults(func=cmd_search)

@@ -46,6 +46,8 @@ def register(subparsers):
     sub.required = True
     for slug, handler in _REPORTS:
         p = sub.add_parser(slug, help=f"{slug} report")
-        p.add_argument("--from-date", help="ISO date (e.g. 2026-01-01)")
-        p.add_argument("--to-date", help="ISO date (e.g. 2026-04-01)")
+        p.add_argument("--from-date", "--from",
+                       help="ISO date (e.g. 2026-01-01). --from is an alias.")
+        p.add_argument("--to-date", "--to",
+                       help="ISO date (e.g. 2026-04-01). --to is an alias.")
         p.set_defaults(func=handler)

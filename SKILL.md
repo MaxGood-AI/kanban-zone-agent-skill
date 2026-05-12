@@ -4,7 +4,7 @@ description: Interact with Kanban Zone kanban boards via the Kanban Zone API. Us
 license: MIT
 compatibility: Requires python3 and environment variables KANBAN_ZONE_API_KEY and KANBAN_ZONE_BOARD_ID. Wraps Kanban Zone Public API v1.4.
 metadata:
-  version: "3.0.0"
+  version: "3.0.2"
   openclaw:
     requires:
       env:

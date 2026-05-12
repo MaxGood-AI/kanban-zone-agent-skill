@@ -54,23 +54,34 @@ def resolve_card_object_id(value, board, cache):
     if cached is not None:
         return cached
     page = 1
+    cards_scanned = 0
+    total_available = None
     while True:
         resp = kz_http.api_request(
             "GET", "/cards",
             params={"board": board, "page": page, "count": 100, "includeArchived": False},
-        )
-        for raw_card in (resp or {}).get("cards", []):
+        ) or {}
+        total_available = resp.get("totalAvailable", total_available)
+        for raw_card in resp.get("cards", []):
             card = _unwrap_card(raw_card)
             cn = card.get("number")
             oid = card.get("_id")
+            cards_scanned += 1
             if cn is not None and oid:
                 cache.set_card_mapping(board, cn, oid)
             if cn == number:
                 return oid
-        if not (resp or {}).get("hasMore"):
+        if not resp.get("hasMore"):
             break
         page += 1
-    raise KZIdError(f"Card number {number} not found on board {board}")
+    raise KZIdError(
+        f"Card number {number} not found on board {board} "
+        f"(scanned {cards_scanned} of {total_available} non-archived cards). "
+        "The card may have been deleted, be on a different board, or be archived. "
+        f"To find it, try: `cards list --include-archived` (to see archived cards), "
+        f"`cards search --query {number}` (across all boards), "
+        "or pass `--board <other-id>` to retry against a specific board."
+    )
 
 
 def resolve_card_number(value, board, cache):
