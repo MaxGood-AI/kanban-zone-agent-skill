@@ -274,8 +274,14 @@ def cmd_wip_check(args, ctx):
 
 def register(subparsers):
     g = subparsers.add_parser("cards", help="Card CRUD, history, metrics, links, search.")
+    # v2 back-compat: `cards` with no subcommand defaults to `cards list`.
+    g.set_defaults(
+        func=cmd_list,
+        page=1, count=100, include_archived=False, days_since_last_update=None,
+        label=None, owner=None, column=None, priority=None, blocked=False, query=None,
+    )
     sub = g.add_subparsers(dest="subcommand")
-    sub.required = True
+    sub.required = False
 
     p = sub.add_parser("list", help="List cards on the active board.")
     p.add_argument("--page", type=int, default=1)

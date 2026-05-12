@@ -60,8 +60,10 @@ def cmd_templates(args, ctx):
 
 def register(subparsers):
     g = subparsers.add_parser("boards", help="Board listing and sub-resources.")
+    # v2 back-compat: `boards` with no subcommand defaults to `boards list`.
+    g.set_defaults(func=cmd_list, include_archived=False, include_columns=False)
     sub = g.add_subparsers(dest="subcommand")
-    sub.required = True
+    sub.required = False
 
     p = sub.add_parser("list", help="List all boards.")
     p.add_argument("--include-archived", action="store_true")
