@@ -1,6 +1,6 @@
 """Boards group: list, get, columns, labels, members, custom-fields, templates."""
-from kz import http as kz_http
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import output as kanban_zone_output
 
 
 def _require_board(ctx):
@@ -10,52 +10,52 @@ def _require_board(ctx):
 
 
 def cmd_list(args, ctx):
-    resp = kz_http.api_request("GET", "/boards", params={
+    resp = kanban_zone_http.api_request("GET", "/boards", params={
         "includeArchived": args.include_archived,
         "includeColumns": args.include_columns,
     })
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_get(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/boards/{board}", params={
+    resp = kanban_zone_http.api_request("GET", f"/boards/{board}", params={
         "includeColumns": args.include_columns,
         "includeMembers": args.include_members,
         "includeLabels": args.include_labels,
         "includeCustomFields": args.include_custom_fields,
     })
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_columns(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/boards/{board}/columns")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/boards/{board}/columns")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_labels(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/boards/{board}/labels")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/boards/{board}/labels")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_members(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/boards/{board}/members")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/boards/{board}/members")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_custom_fields(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/boards/{board}/custom-fields")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/boards/{board}/custom-fields")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_templates(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/templates/{board}")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/templates/{board}")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):

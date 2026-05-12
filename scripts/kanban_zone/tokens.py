@@ -1,31 +1,31 @@
 """Tokens group: assign, revoke, list (card share tokens)."""
-from kz import http as kz_http
-from kz import ids as kz_ids
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import ids as kanban_zone_ids
+from kanban_zone import output as kanban_zone_output
 
 
 def _resolve_card(ctx, value):
     if not ctx.board:
         raise ValueError("--board or KANBAN_ZONE_BOARD_ID is required")
-    return kz_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
+    return kanban_zone_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
 
 
 def cmd_assign(args, ctx):
     oid = _resolve_card(ctx, args.card)
     body = {"card": oid, "tokenId": args.token_id, "board": ctx.board}
-    resp = kz_http.api_request("POST", "/tokens", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/tokens", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_revoke(args, ctx):
-    kz_http.api_request("DELETE", f"/tokens/{args.id}")
-    kz_output.print_json({"revoked": True, "id": args.id}, pretty=ctx.pretty)
+    kanban_zone_http.api_request("DELETE", f"/tokens/{args.id}")
+    kanban_zone_output.print_json({"revoked": True, "id": args.id}, pretty=ctx.pretty)
 
 
 def cmd_list(args, ctx):
     oid = _resolve_card(ctx, args.card)
-    resp = kz_http.api_request("GET", f"/cards/{oid}/tokens")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}/tokens")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):

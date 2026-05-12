@@ -19,7 +19,7 @@ This is being published in partnership with Kanban Zone (the company); the API a
 | 1 | MCP vs skill | **Skill remains primary.** The official `kanban-zone-mcp-server` is acknowledged but neither wrapped nor replaced. The skill keeps its deterministic CLI, agent cache, and delete operations (which MCP intentionally omits). |
 | 2 | Card identifier in CLI | **Auto-detect:** numeric → card number, 24-hex string → ObjectId. Single `--id` flag. |
 | 3 | CLI organization | **Full grouped reorganization** (`cards create`, `boards list`, etc.) — v3.0.0 breaking change. Old flat commands kept as **hidden back-compat aliases** with `argparse.SUPPRESS`. |
-| 4 | Code organization | **Split into a small `scripts/kz/` package** — CLI entry stays at `scripts/kanban_zone_api.py` (~150 lines), each resource gets its own module. |
+| 4 | Code organization | **Split into a small `scripts/kanban_zone/` package** — CLI entry stays at `scripts/kanban_zone_api.py` (~150 lines), each resource gets its own module. |
 | 5 | Test framework | **stdlib `unittest` + mocked HTTP.** No third-party dependency at runtime. Coverage tooling (`coverage.py`) is a documented dev dep. |
 | 6 | Endpoint deprecation | **Silent migration** to all new canonical paths (`PATCH /cards/{id}`, `POST /checklists`, `POST /comments`, `POST /tokens`, `GET /boards/{publicId}`). No fallback toggle. |
 | 7 | Reports CLI shape | **One subcommand per report type** (8 wrappers over a shared `_run_report` helper). |
@@ -162,7 +162,7 @@ kanban-zone/
 │   └── migration-from-v2.md      # NEW — flat → grouped command map
 ├── scripts/
 │   ├── kanban_zone_api.py        # CLI entry (~150 lines: argparse wiring + dispatch)
-│   └── kz/
+│   └── kanban_zone/
 │       ├── __init__.py
 │       ├── http.py               # auth, base64 key, api_request, error model
 │       ├── cache.py              # board/column cache + bidirectional number↔ObjectId
@@ -209,19 +209,19 @@ kanban-zone/
 
 ## 6. Behavior details
 
-### 6.1 HTTP layer (`kz/http.py`)
+### 6.1 HTTP layer (`kanban_zone/http.py`)
 
 - `BASE_URL = "https://integrations.kanbanzone.io/v1"`.
 - Signature: `api_request(method, path, params=None, body=None) -> Any` (returns the parsed JSON value — typically a `dict`, occasionally a `list` for collection endpoints, occasionally `None` on 204).
 - Builds the Authorization header from `KANBAN_ZONE_API_KEY`, base64-encoded once at first call (in-process cache).
 - Sends with `urllib.request.Request`. Reads JSON response.
 - Adds header `User-Agent: kanban-zone-skill/3.0.0`.
-- On non-2xx: raises `KZApiError(status, body, request_line)`. Caught at the CLI boundary and rendered as `{"error": true, "status": N, "message": "..."}` on stderr; exit code 1.
+- On non-2xx: raises `KanbanZoneApiError(status, body, request_line)`. Caught at the CLI boundary and rendered as `{"error": true, "status": N, "message": "..."}` on stderr; exit code 1.
 - `.env` auto-loading remains exactly as in v2: search current working directory, then the skill's parent directory.
 
-### 6.2 ID resolution (`kz/ids.py`)
+### 6.2 ID resolution (`kanban_zone/ids.py`)
 
-- `detect_id_kind(value: str) -> Literal["number", "object_id"]`. Matches `^\d+$` → `"number"`; matches `^[0-9a-fA-F]{24}$` → `"object_id"`; else raises `KZIdError`.
+- `detect_id_kind(value: str) -> Literal["number", "object_id"]`. Matches `^\d+$` → `"number"`; matches `^[0-9a-fA-F]{24}$` → `"object_id"`; else raises `KanbanZoneIdError`.
 - `resolve_card_object_id(value, board, cache) -> str`:
   - if `value` is already an ObjectId, return it;
   - if `value` is a number, check `cache.get_card_oid(board, number)`;
@@ -230,7 +230,7 @@ kanban-zone/
 - `resolve_card_number(object_id, board, cache) -> int`: symmetrical reverse direction. Used only when display logic needs to show a number for an ObjectId-keyed response.
 - All resolution functions accept the cache as an argument (no global cache state) so tests can pass a fake.
 
-### 6.3 Cache (`kz/cache.py`)
+### 6.3 Cache (`kanban_zone/cache.py`)
 
 - File: `kanbanzone-cache.json` in the agent's memory directory (location *unchanged from v2*; the path is supplied by the CLI entry, not read from env inside the cache module).
 - Schema:
@@ -275,7 +275,7 @@ For every command that takes a card number argument and ends up calling an Objec
 
 - Pure local: `hmac.new(key.encode(), payload_bytes, hashlib.sha1).hexdigest()`.
 - Reads the payload from `--payload-file` (binary read). Documented expectation: the file contains exactly the bytes that were signed — i.e. the value of `notification.payload` (as the docs' verification example does), not the full envelope.
-- Reads the key from `--webhook-key` or `KZ_WEBHOOK_KEY`.
+- Reads the key from `--webhook-key` or `KANBAN_ZONE_WEBHOOK_KEY`.
 - Compares using `hmac.compare_digest`.
 - Output: `{"verified": true|false, "computed": "<hex>"}`. Exit 0 on match, 1 on mismatch.
 
@@ -289,7 +289,7 @@ For every command that takes a card number argument and ends up calling an Objec
 ### 7.1 Strategy
 
 - stdlib `unittest`, mocked HTTP.
-- Single fake at `tests/fakes.py`: `FakeApi` is a context manager that monkey-patches `kz.http.api_request` with a programmable response queue.
+- Single fake at `tests/fakes.py`: `FakeApi` is a context manager that monkey-patches `kanban_zone.http.api_request` with a programmable response queue.
   - `expect(method, path, params=..., body=...).returns(json=..., status=200)` style.
   - `assert_no_more_calls()` verifies the queue is drained.
   - Per-call assertion: method, path, params, body match what the test queued.
@@ -316,7 +316,7 @@ For every command that takes a card number argument and ends up calling an Objec
 |------|-----------|
 | `SKILL.md` | Full rewrite. Sections: agent quick-start (env + .env), grouped command surface (one section per resource group with 2–3 example invocations each), description-formatting rules (HTML, no tables, `<pre>` blocks — kept verbatim from v2), exec-safety rule for multi-line strings (kept), `--description-file` workflow (kept), cache section (updated with bidirectional ID-mapping note), column-states table (kept), script-reference table covering grouped subcommands. Legacy aliases get one sentence pointing to `references/migration-from-v2.md` — not enumerated in SKILL.md. |
 | `README.md` | Full rewrite as the published face. Sections: what the skill does, install, env setup, worked-example cookbook (8–10 realistic flows), the API version it wraps (v1.4), and a "What's new in v3" pointing to CHANGELOG. |
-| `AGENTS.md` | Full rewrite for contributors. Sections: project layout (the `kz/` package), how to add a new endpoint (template: handler in `kz/<resource>.py`, register subparser, add fixture, add test, run coverage), test commands, coverage requirement, commit-style alignment with the parent platform. Includes the SKILL.md/AGENTS.md sync clause. |
+| `AGENTS.md` | Full rewrite for contributors. Sections: project layout (the `kanban_zone/` package), how to add a new endpoint (template: handler in `kanban_zone/<resource>.py`, register subparser, add fixture, add test, run coverage), test commands, coverage requirement, commit-style alignment with the parent platform. Includes the SKILL.md/AGENTS.md sync clause. |
 | `references/api-reference.md` | Full rewrite covering every v1.4 endpoint with parameters, request body schema, response shape, and notes on deprecated equivalents. Sourced from the Postman collection plus the live SPA pages. Replaces today's v1.3 reference. |
 | `references/migration-from-v2.md` | NEW. The flat-to-grouped command map (table), how the hidden aliases work, the silent endpoint migration list, and the cache schema migration note. |
 | `CHANGELOG.md` | NEW. v3.0.0 entry covering: API v1.4 coverage, grouped CLI, hidden aliases, bidirectional ID cache, silent endpoint migration, signature-verify helper, ≥95 % coverage. Older versions reconstructed best-effort from git history (v2.1.0, v2.0.0). |
@@ -333,7 +333,7 @@ For every command that takes a card number argument and ends up calling an Objec
 
 - Hosted MCP server. The official `kanban-zone-mcp-server` exists separately; this skill does not wrap or replace it.
 - Zapier integration management (no public Zapier API exposed beyond what the docs already show).
-- Distribution as a `pip install`-able library. The package layout means `from kz import cards` works for tests, but no PyPI publishing.
+- Distribution as a `pip install`-able library. The package layout means `from kanban_zone import cards` works for tests, but no PyPI publishing.
 - OpenAPI codegen. Implementation works from the Postman collection plus live docs scrape.
 
 ## 11. Acceptance criteria

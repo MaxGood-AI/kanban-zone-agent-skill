@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Update the Kanban Zone skill from v2.1.0 (wrapping API v1.3) to v3.0.0 (wrapping API v1.4.0), adding ~38 new endpoints, restructuring the CLI into resource groups with hidden back-compat aliases, splitting the script into a `scripts/kz/` package, and adding a stdlib `unittest` suite at ≥95 % coverage.
+**Goal:** Update the Kanban Zone skill from v2.1.0 (wrapping API v1.3) to v3.0.0 (wrapping API v1.4.0), adding ~38 new endpoints, restructuring the CLI into resource groups with hidden back-compat aliases, splitting the script into a `scripts/kanban_zone/` package, and adding a stdlib `unittest` suite at ≥95 % coverage.
 
-**Architecture:** Single CLI entry point dispatches to per-resource handler modules. All HTTP goes through one `kz.http.api_request` chokepoint (mockable in tests). A bidirectional cache maps card numbers ↔ ObjectIds and stores board/column metadata. Every resource module owns its own argparse subparser and handler functions. Tests use a `FakeApi` context manager that monkey-patches `kz.http.api_request` with a programmable response queue.
+**Architecture:** Single CLI entry point dispatches to per-resource handler modules. All HTTP goes through one `kanban_zone.http.api_request` chokepoint (mockable in tests). A bidirectional cache maps card numbers ↔ ObjectIds and stores board/column metadata. Every resource module owns its own argparse subparser and handler functions. Tests use a `FakeApi` context manager that monkey-patches `kanban_zone.http.api_request` with a programmable response queue.
 
 **Tech Stack:** Python 3 (stdlib only at runtime — `argparse`, `urllib.request`, `json`, `base64`, `hmac`, `hashlib`, `tempfile`). Dev-only deps: `coverage` (HTML + console reporting). No web framework, no database, no third-party HTTP client.
 
@@ -14,7 +14,7 @@
 
 **Conventions used in every task:**
 - Test-first: write the failing test, run it to confirm it fails, write minimal implementation, run again to confirm pass, commit.
-- Commit messages follow the platform style (`## Problem` / `## Solution` / `## Verified`, KZ card link if applicable, `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`).
+- Commit messages follow the platform style (`## Problem` / `## Solution` / `## Verified`, Kanban Zone card link if applicable, `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`).
 - All tests run from repo root: `python3 -m unittest discover tests -v`.
 - Coverage runs: `coverage run -m unittest discover tests && coverage report -m`.
 - Stdlib only — no `pip install` for runtime code.
@@ -43,7 +43,7 @@ touch tests/__init__.py tests/fixtures/.gitkeep
 
 ```ini
 [run]
-source = scripts/kz
+source = scripts/kanban_zone
 branch = True
 
 [report]
@@ -77,7 +77,7 @@ lint:
 	python3 -m compileall -q scripts tests
 
 clean:
-	rm -rf .coverage htmlcov tests/__pycache__ scripts/__pycache__ scripts/kz/__pycache__
+	rm -rf .coverage htmlcov tests/__pycache__ scripts/__pycache__ scripts/kanban_zone/__pycache__
 ```
 
 - [ ] **Step 4: Update `.gitignore`.** Append:
@@ -87,7 +87,7 @@ clean:
 htmlcov/
 tests/__pycache__/
 scripts/__pycache__/
-scripts/kz/__pycache__/
+scripts/kanban_zone/__pycache__/
 ```
 
 - [ ] **Step 5: Verify `make lint` passes (compiles the empty tests/ — should be a no-op success).**
@@ -124,15 +124,15 @@ EOF
 
 ---
 
-### Task 2: Create the empty `kz/` package
+### Task 2: Create the empty `kanban_zone/` package
 
 **Files:**
-- Create: `scripts/kz/__init__.py`
+- Create: `scripts/kanban_zone/__init__.py`
 
 - [ ] **Step 1: Create empty package marker.**
 
 ```bash
-touch scripts/kz/__init__.py
+touch scripts/kanban_zone/__init__.py
 ```
 
 Contents (one line):
@@ -144,26 +144,26 @@ Contents (one line):
 - [ ] **Step 2: Verify it imports.**
 
 ```bash
-cd scripts && python3 -c "import kz" && cd ..
+cd scripts && python3 -c "import kanban_zone" && cd ..
 ```
 Expected: exit 0, no output.
 
 - [ ] **Step 3: Commit.**
 
 ```bash
-git add scripts/kz/__init__.py
+git add scripts/kanban_zone/__init__.py
 git commit -m "$(cat <<'EOF'
-Add empty kz/ package marker
+Add empty kanban_zone/ package marker
 
 ## Problem
-v3 splits the monolithic kanban_zone_api.py into a kz/ package. Need the
+v3 splits the monolithic kanban_zone_api.py into a kanban_zone/ package. Need the
 empty package marker to start adding modules.
 
 ## Solution
-Single-line scripts/kz/__init__.py.
+Single-line scripts/kanban_zone/__init__.py.
 
 ## Verified
-python3 -c "import kz" from scripts/ succeeds.
+python3 -c "import kanban_zone" from scripts/ succeeds.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
@@ -174,10 +174,10 @@ EOF
 
 ## Phase 1 — Foundation
 
-### Task 3: Output module (`kz.output`)
+### Task 3: Output module (`kanban_zone.output`)
 
 **Files:**
-- Create: `scripts/kz/output.py`
+- Create: `scripts/kanban_zone/output.py`
 - Create: `tests/test_output.py`
 
 - [ ] **Step 1: Write failing tests `tests/test_output.py`.**
@@ -190,7 +190,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import output
+from kanban_zone import output
 
 
 class TestPrintJson(unittest.TestCase):
@@ -236,14 +236,14 @@ if __name__ == "__main__":
     unittest.main()
 ```
 
-- [ ] **Step 2: Run — expect failure ("No module named kz.output" or similar).**
+- [ ] **Step 2: Run — expect failure ("No module named kanban_zone.output" or similar).**
 
 ```bash
 python3 -m unittest tests.test_output -v
 ```
 Expected: ImportError or ModuleNotFoundError.
 
-- [ ] **Step 3: Implement `scripts/kz/output.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/output.py`.**
 
 ```python
 """JSON output helpers for the Kanban Zone CLI."""
@@ -280,17 +280,17 @@ Expected: 5 tests, all PASS.
 - [ ] **Step 5: Commit.**
 
 ```bash
-git add scripts/kz/output.py tests/test_output.py
+git add scripts/kanban_zone/output.py tests/test_output.py
 git commit -m "$(cat <<'EOF'
-Add kz.output JSON + error-exit helpers
+Add kanban_zone.output JSON + error-exit helpers
 
 ## Problem
-Every kz handler needs a consistent way to emit JSON and surface errors.
+Every kanban_zone handler needs a consistent way to emit JSON and surface errors.
 Inlining json.dumps everywhere would scatter the format and make a
 --pretty global flag awkward to thread through.
 
 ## Solution
-kz/output.py exposes print_json(data, pretty) and error_exit(message,
+kanban_zone/output.py exposes print_json(data, pretty) and error_exit(message,
 status). All handlers will call these instead of touching sys.stdout/stderr
 directly. Tests cover compact/pretty/null and error-with-status/no-status.
 
@@ -304,10 +304,10 @@ EOF
 
 ---
 
-### Task 4: HTTP layer (`kz.http`) — error model and request helper
+### Task 4: HTTP layer (`kanban_zone.http`) — error model and request helper
 
 **Files:**
-- Create: `scripts/kz/http.py`
+- Create: `scripts/kanban_zone/http.py`
 - Create: `tests/test_http.py`
 
 - [ ] **Step 1: Write failing tests `tests/test_http.py`.**
@@ -323,7 +323,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import http as kz_http
+from kanban_zone import http as kanban_zone_http
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -394,59 +394,59 @@ class TestApiRequest(unittest.TestCase):
         cls.srv.shutdown()
 
     def setUp(self):
-        kz_http._cached_auth_header = None
+        kanban_zone_http._cached_auth_header = None
         os.environ["KANBAN_ZONE_API_KEY"] = "abc:secret"
-        self._orig_base = kz_http.BASE_URL
-        kz_http.BASE_URL = self.base
+        self._orig_base = kanban_zone_http.BASE_URL
+        kanban_zone_http.BASE_URL = self.base
 
     def tearDown(self):
-        kz_http.BASE_URL = self._orig_base
+        kanban_zone_http.BASE_URL = self._orig_base
         os.environ.pop("KANBAN_ZONE_API_KEY", None)
-        kz_http._cached_auth_header = None
+        kanban_zone_http._cached_auth_header = None
 
     def test_get_returns_parsed_json(self):
-        result = kz_http.api_request("GET", "/anything")
+        result = kanban_zone_http.api_request("GET", "/anything")
         self.assertEqual(result, {"ok": True})
 
     def test_authorization_header_is_basic_base64(self):
-        kz_http.api_request("GET", "/x")
+        kanban_zone_http.api_request("GET", "/x")
         expected = "Basic " + base64.b64encode(b"abc:secret").decode()
         self.assertEqual(_Handler.last_request["headers"]["Authorization"], expected)
 
     def test_user_agent_header_is_set(self):
-        kz_http.api_request("GET", "/x")
+        kanban_zone_http.api_request("GET", "/x")
         self.assertEqual(
             _Handler.last_request["headers"]["User-Agent"],
-            f"kanban-zone-skill/{kz_http.SKILL_VERSION}",
+            f"kanban-zone-skill/{kanban_zone_http.SKILL_VERSION}",
         )
 
     def test_query_params_appended(self):
-        kz_http.api_request("GET", "/x", params={"a": "1", "b": "two"})
+        kanban_zone_http.api_request("GET", "/x", params={"a": "1", "b": "two"})
         self.assertIn("a=1", _Handler.last_request["path"])
         self.assertIn("b=two", _Handler.last_request["path"])
 
     def test_post_body_serialised_as_json(self):
-        kz_http.api_request("POST", "/x", body={"hello": "world"})
+        kanban_zone_http.api_request("POST", "/x", body={"hello": "world"})
         self.assertEqual(json.loads(_Handler.last_request["body"]), {"hello": "world"})
         self.assertEqual(
             _Handler.last_request["headers"]["Content-Type"], "application/json"
         )
 
     def test_204_returns_none(self):
-        result = kz_http.api_request("PATCH", "/x", body={})
+        result = kanban_zone_http.api_request("PATCH", "/x", body={})
         self.assertIsNone(result)
 
     def test_non_2xx_raises_kzapierror_with_status_and_body(self):
-        with self.assertRaises(kz_http.KZApiError) as cm:
-            kz_http.api_request("GET", "/error/foo")
+        with self.assertRaises(kanban_zone_http.KanbanZoneApiError) as cm:
+            kanban_zone_http.api_request("GET", "/error/foo")
         self.assertEqual(cm.exception.status, 404)
         self.assertIn("not found", cm.exception.body)
 
     def test_missing_api_key_raises(self):
         os.environ.pop("KANBAN_ZONE_API_KEY", None)
-        kz_http._cached_auth_header = None
-        with self.assertRaises(kz_http.KZAuthError):
-            kz_http.api_request("GET", "/x")
+        kanban_zone_http._cached_auth_header = None
+        with self.assertRaises(kanban_zone_http.KanbanZoneAuthError):
+            kanban_zone_http.api_request("GET", "/x")
 
 
 if __name__ == "__main__":
@@ -460,7 +460,7 @@ python3 -m unittest tests.test_http -v
 ```
 Expected: ImportError.
 
-- [ ] **Step 3: Implement `scripts/kz/http.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/http.py`.**
 
 ```python
 """HTTP layer for the Kanban Zone CLI.
@@ -481,7 +481,7 @@ BASE_URL = "https://integrations.kanbanzone.io/v1"
 _cached_auth_header = None
 
 
-class KZApiError(Exception):
+class KanbanZoneApiError(Exception):
     def __init__(self, status, body, request_line):
         super().__init__(f"{request_line} -> HTTP {status}: {body[:200]}")
         self.status = status
@@ -489,7 +489,7 @@ class KZApiError(Exception):
         self.request_line = request_line
 
 
-class KZAuthError(Exception):
+class KanbanZoneAuthError(Exception):
     pass
 
 
@@ -500,7 +500,7 @@ def _auth_header():
     raw = os.environ.get("KANBAN_ZONE_API_KEY") or ""
     raw = raw.strip()
     if not raw:
-        raise KZAuthError(
+        raise KanbanZoneAuthError(
             "KANBAN_ZONE_API_KEY is not set (and --api-token was not passed)"
         )
     encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
@@ -519,7 +519,7 @@ def set_api_token(raw_token):
 def api_request(method, path, params=None, body=None):
     """Send an HTTP request to the Kanban Zone API and return parsed JSON.
 
-    Returns None on 204. Raises KZApiError on non-2xx, KZAuthError on missing key.
+    Returns None on 204. Raises KanbanZoneApiError on non-2xx, KanbanZoneAuthError on missing key.
     """
     if not path.startswith("/"):
         path = "/" + path
@@ -547,16 +547,16 @@ def api_request(method, path, params=None, body=None):
             raw = resp.read()
     except urllib.error.HTTPError as exc:
         raw = exc.read() or b""
-        raise KZApiError(exc.code, raw.decode("utf-8", errors="replace"), request_line)
+        raise KanbanZoneApiError(exc.code, raw.decode("utf-8", errors="replace"), request_line)
     except urllib.error.URLError as exc:
-        raise KZApiError(0, str(exc.reason), request_line)
+        raise KanbanZoneApiError(0, str(exc.reason), request_line)
 
     if status == 204 or not raw:
         return None
     try:
         return json.loads(raw.decode("utf-8"))
     except json.JSONDecodeError as exc:
-        raise KZApiError(
+        raise KanbanZoneApiError(
             status, f"non-JSON response: {raw[:200]!r}", request_line
         ) from exc
 ```
@@ -571,18 +571,18 @@ Expected: 8 tests, all PASS.
 - [ ] **Step 5: Commit.**
 
 ```bash
-git add scripts/kz/http.py tests/test_http.py
+git add scripts/kanban_zone/http.py tests/test_http.py
 git commit -m "$(cat <<'EOF'
-Add kz.http API request layer + unit tests
+Add kanban_zone.http API request layer + unit tests
 
 ## Problem
 v3 needs a single mockable HTTP chokepoint. v2 does HTTP inline in the
 monolithic script, which makes test isolation impossible.
 
 ## Solution
-kz/http.py exposes api_request(method, path, params, body) returning parsed
+kanban_zone/http.py exposes api_request(method, path, params, body) returning parsed
 JSON (or None on 204). Auth header is base64(KANBAN_ZONE_API_KEY) cached
-in-process. KZApiError carries status/body/request line; KZAuthError fires
+in-process. KanbanZoneApiError carries status/body/request line; KanbanZoneAuthError fires
 when the key is missing. set_api_token() lets the CLI --api-token flag
 override the env. Tests run a real http.server on an ephemeral port to
 exercise URL building, auth header, User-Agent, query params, JSON body
@@ -613,7 +613,7 @@ import sys
 import unittest
 
 sys.path.insert(0, "scripts")
-from kz import http as kz_http
+from kanban_zone import http as kanban_zone_http
 from tests.fakes import FakeApi
 
 
@@ -621,13 +621,13 @@ class TestFakeApi(unittest.TestCase):
     def test_returns_queued_response(self):
         with FakeApi() as fake:
             fake.expect("GET", "/boards").returns({"count": 0, "boards": []})
-            self.assertEqual(kz_http.api_request("GET", "/boards"), {"count": 0, "boards": []})
+            self.assertEqual(kanban_zone_http.api_request("GET", "/boards"), {"count": 0, "boards": []})
             fake.assert_no_more_calls()
 
     def test_records_actual_call_args(self):
         with FakeApi() as fake:
             fake.expect("POST", "/cards", body={"title": "x"}).returns({"ok": True})
-            kz_http.api_request("POST", "/cards", body={"title": "x"})
+            kanban_zone_http.api_request("POST", "/cards", body={"title": "x"})
             call = fake.calls[0]
             self.assertEqual(call.method, "POST")
             self.assertEqual(call.path, "/cards")
@@ -636,20 +636,20 @@ class TestFakeApi(unittest.TestCase):
     def test_unexpected_call_raises(self):
         with self.assertRaises(AssertionError):
             with FakeApi() as fake:
-                kz_http.api_request("GET", "/whatever")
+                kanban_zone_http.api_request("GET", "/whatever")
 
     def test_path_mismatch_raises(self):
         with self.assertRaises(AssertionError):
             with FakeApi() as fake:
                 fake.expect("GET", "/boards").returns({})
-                kz_http.api_request("GET", "/cards")
+                kanban_zone_http.api_request("GET", "/cards")
 
     def test_assert_no_more_calls_fails_when_queue_not_drained(self):
         with self.assertRaises(AssertionError):
             with FakeApi() as fake:
                 fake.expect("GET", "/x").returns({})
                 fake.expect("GET", "/y").returns({})
-                kz_http.api_request("GET", "/x")
+                kanban_zone_http.api_request("GET", "/x")
                 fake.assert_no_more_calls()
 
 
@@ -667,13 +667,13 @@ Expected: ImportError on `tests.fakes`.
 - [ ] **Step 3: Implement `tests/fakes.py`.**
 
 ```python
-"""Test fakes for the kz package — primarily the FakeApi context manager."""
+"""Test fakes for the kanban_zone package — primarily the FakeApi context manager."""
 import sys
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
 
 sys.path.insert(0, "scripts")
-from kz import http as kz_http
+from kanban_zone import http as kanban_zone_http
 
 
 @dataclass
@@ -703,7 +703,7 @@ class _ExpectationBuilder:
 
 
 class FakeApi:
-    """Context manager that monkey-patches kz.http.api_request with a queue."""
+    """Context manager that monkey-patches kanban_zone.http.api_request with a queue."""
 
     def __init__(self):
         self.expectations: List[_Expectation] = []
@@ -711,12 +711,12 @@ class FakeApi:
         self._original = None
 
     def __enter__(self):
-        self._original = kz_http.api_request
-        kz_http.api_request = self._intercept
+        self._original = kanban_zone_http.api_request
+        kanban_zone_http.api_request = self._intercept
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        kz_http.api_request = self._original
+        kanban_zone_http.api_request = self._original
 
     def expect(self, method, path, params=None, body=None):
         exp = _Expectation(method=method, path=path, params=params, body=body)
@@ -766,7 +766,7 @@ git commit -m "$(cat <<'EOF'
 Add FakeApi test fixture
 
 ## Problem
-Every resource handler test needs to mock kz.http.api_request. Writing
+Every resource handler test needs to mock kanban_zone.http.api_request. Writing
 ad-hoc unittest.mock.patch in every test file would duplicate setup,
 hide intent, and lose the ability to assert what was actually called.
 
@@ -775,7 +775,7 @@ tests/fakes.py exposes FakeApi as a context manager. Tests queue
 expectations with .expect(method, path, params, body).returns(response),
 then assert exhaustion with .assert_no_more_calls(). The actual call
 record is exposed via .calls for finer assertions. The fake monkey-patches
-kz.http.api_request on enter and restores on exit.
+kanban_zone.http.api_request on enter and restores on exit.
 
 ## Verified
 python3 -m unittest tests.test_fakes passes (5 tests).
@@ -787,10 +787,10 @@ EOF
 
 ---
 
-### Task 6: Cache module (`kz.cache`) — board/column + bidirectional ID
+### Task 6: Cache module (`kanban_zone.cache`) — board/column + bidirectional ID
 
 **Files:**
-- Create: `scripts/kz/cache.py`
+- Create: `scripts/kanban_zone/cache.py`
 - Create: `tests/test_cache.py`
 
 - [ ] **Step 1: Write failing tests `tests/test_cache.py`.**
@@ -803,7 +803,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, "scripts")
-from kz.cache import Cache
+from kanban_zone.cache import Cache
 
 
 class TestCache(unittest.TestCase):
@@ -896,7 +896,7 @@ python3 -m unittest tests.test_cache -v
 ```
 Expected: ImportError.
 
-- [ ] **Step 3: Implement `scripts/kz/cache.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/cache.py`.**
 
 ```python
 """Persistent agent-side cache for board/column metadata + card number<->ObjectId.
@@ -1026,9 +1026,9 @@ Expected: 10 tests, all PASS.
 - [ ] **Step 5: Commit.**
 
 ```bash
-git add scripts/kz/cache.py tests/test_cache.py
+git add scripts/kanban_zone/cache.py tests/test_cache.py
 git commit -m "$(cat <<'EOF'
-Add kz.cache with bidirectional card-id mapping
+Add kanban_zone.cache with bidirectional card-id mapping
 
 ## Problem
 v3 introduces card-number <-> ObjectId resolution (auto-detect ID kind).
@@ -1036,7 +1036,7 @@ The agent cache must store both directions so resolved ObjectIds can be
 reused without re-paging /cards. v2's cache only stored boards/columns.
 
 ## Solution
-kz/cache.py adds a Cache class with byNumber/byObjectId dicts under each
+kanban_zone/cache.py adds a Cache class with byNumber/byObjectId dicts under each
 board entry. set_card_mapping writes both directions; invalidate_card
 removes both regardless of which key the caller has. Atomic write via
 tempfile + os.replace. Forward-compatible: v2 cache files (no cards block)
@@ -1052,10 +1052,10 @@ EOF
 
 ---
 
-### Task 7: ID resolver (`kz.ids`)
+### Task 7: ID resolver (`kanban_zone.ids`)
 
 **Files:**
-- Create: `scripts/kz/ids.py`
+- Create: `scripts/kanban_zone/ids.py`
 - Create: `tests/test_ids.py`
 
 - [ ] **Step 1: Write failing tests `tests/test_ids.py`.**
@@ -1067,8 +1067,8 @@ import tempfile
 import unittest
 
 sys.path.insert(0, "scripts")
-from kz import ids
-from kz.cache import Cache
+from kanban_zone import ids
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -1086,11 +1086,11 @@ class TestDetectIdKind(unittest.TestCase):
         self.assertEqual(ids.detect_id_kind(CARD_OID.upper()), "object_id")
 
     def test_short_hex_raises(self):
-        with self.assertRaises(ids.KZIdError):
+        with self.assertRaises(ids.KanbanZoneIdError):
             ids.detect_id_kind("abc123")
 
     def test_empty_raises(self):
-        with self.assertRaises(ids.KZIdError):
+        with self.assertRaises(ids.KanbanZoneIdError):
             ids.detect_id_kind("")
 
 
@@ -1146,7 +1146,7 @@ class TestResolveCardObjectId(unittest.TestCase):
             fake.expect("GET", "/cards", params={
                 "board": "BOARD1", "page": 1, "count": 100, "includeArchived": False,
             }).returns({"count": 0, "totalAvailable": 0, "hasMore": False, "cards": []})
-            with self.assertRaises(ids.KZIdError):
+            with self.assertRaises(ids.KanbanZoneIdError):
                 ids.resolve_card_object_id("999", "BOARD1", self.cache)
 
 
@@ -1189,7 +1189,7 @@ python3 -m unittest tests.test_ids -v
 ```
 Expected: ImportError.
 
-- [ ] **Step 3: Implement `scripts/kz/ids.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/ids.py`.**
 
 ```python
 """Card identifier resolution.
@@ -1199,13 +1199,13 @@ Resolves either direction through the agent cache, falling back to API calls.
 """
 import re
 
-from kz import http as kz_http
+from kanban_zone import http as kanban_zone_http
 
 _NUMBER_RE = re.compile(r"^\d+$")
 _OBJECT_ID_RE = re.compile(r"^[0-9a-fA-F]{24}$")
 
 
-class KZIdError(Exception):
+class KanbanZoneIdError(Exception):
     pass
 
 
@@ -1216,7 +1216,7 @@ def detect_id_kind(value):
         return "number"
     if _OBJECT_ID_RE.match(value):
         return "object_id"
-    raise KZIdError(
+    raise KanbanZoneIdError(
         f"{value!r} is neither a card number (digits) nor a 24-hex ObjectId"
     )
 
@@ -1232,7 +1232,7 @@ def resolve_card_object_id(value, board, cache):
         return cached
     page = 1
     while True:
-        resp = kz_http.api_request(
+        resp = kanban_zone_http.api_request(
             "GET", "/cards",
             params={"board": board, "page": page, "count": 100, "includeArchived": False},
         )
@@ -1246,7 +1246,7 @@ def resolve_card_object_id(value, board, cache):
         if not (resp or {}).get("hasMore"):
             break
         page += 1
-    raise KZIdError(f"Card number {number} not found on board {board}")
+    raise KanbanZoneIdError(f"Card number {number} not found on board {board}")
 
 
 def resolve_card_number(value, board, cache):
@@ -1257,10 +1257,10 @@ def resolve_card_number(value, board, cache):
     cached = cache.get_card_number(board, value)
     if cached is not None:
         return cached
-    resp = kz_http.api_request("GET", f"/cards/{value}")
+    resp = kanban_zone_http.api_request("GET", f"/cards/{value}")
     number = (resp or {}).get("number")
     if number is None:
-        raise KZIdError(f"Card {value} returned no number field")
+        raise KanbanZoneIdError(f"Card {value} returned no number field")
     cache.set_card_mapping(board, number, value)
     return int(number)
 ```
@@ -1275,9 +1275,9 @@ Expected: 9 tests, all PASS.
 - [ ] **Step 5: Commit.**
 
 ```bash
-git add scripts/kz/ids.py tests/test_ids.py
+git add scripts/kanban_zone/ids.py tests/test_ids.py
 git commit -m "$(cat <<'EOF'
-Add kz.ids auto-detection + bidirectional resolver
+Add kanban_zone.ids auto-detection + bidirectional resolver
 
 ## Problem
 v3's CLI accepts a single --id flag for cards, auto-detecting whether the
@@ -1307,7 +1307,7 @@ EOF
 - Modify: `scripts/kanban_zone_api.py` (full rewrite — replaces v2 monolith)
 - Create: `tests/test_cli_skeleton.py`
 
-The new entry script keeps the `.env` loader from v2 and adds the global flags + group dispatch. Resource subparsers will be added in later tasks via `register(subparsers, cache)` functions in each `kz/<resource>.py`.
+The new entry script keeps the `.env` loader from v2 and adds the global flags + group dispatch. Resource subparsers will be added in later tasks via `register(subparsers, cache)` functions in each `kanban_zone/<resource>.py`.
 
 - [ ] **Step 1: Write failing test `tests/test_cli_skeleton.py`.**
 
@@ -1364,7 +1364,7 @@ Expected: FAIL on flag presence.
 #!/usr/bin/env python3
 """Kanban Zone CLI — v3 entry point.
 
-Resource handlers live in scripts/kz/<resource>.py. Each resource module
+Resource handlers live in scripts/kanban_zone/<resource>.py. Each resource module
 exposes register(subparsers, ctx) that wires its grouped subparser into
 the shared dispatcher.
 """
@@ -1375,9 +1375,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from kz import http as kz_http  # noqa: E402
-from kz import output as kz_output  # noqa: E402
-from kz.cache import Cache  # noqa: E402
+from kanban_zone import http as kanban_zone_http  # noqa: E402
+from kanban_zone import output as kanban_zone_output  # noqa: E402
+from kanban_zone.cache import Cache  # noqa: E402
 
 
 def _load_env_file():
@@ -1426,7 +1426,7 @@ def build_parser():
     sub.required = True
 
     # Resource registrations are added in later tasks:
-    # from kz import boards, cards, comments, ...
+    # from kanban_zone import boards, cards, comments, ...
     # boards.register(sub)
     # cards.register(sub)
     # ...
@@ -1440,14 +1440,14 @@ def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.api_token:
-        kz_http.set_api_token(args.api_token)
+        kanban_zone_http.set_api_token(args.api_token)
     ctx = Context(args)
     try:
         return args.func(args, ctx)
-    except kz_http.KZApiError as exc:
-        kz_output.error_exit(str(exc), status=exc.status)
-    except (kz_http.KZAuthError, ValueError) as exc:
-        kz_output.error_exit(str(exc))
+    except kanban_zone_http.KanbanZoneApiError as exc:
+        kanban_zone_output.error_exit(str(exc), status=exc.status)
+    except (kanban_zone_http.KanbanZoneAuthError, ValueError) as exc:
+        kanban_zone_output.error_exit(str(exc))
 
 
 if __name__ == "__main__":
@@ -1473,7 +1473,7 @@ git commit -m "$(cat <<'EOF'
 Replace v2 monolith with v3 CLI entry skeleton
 
 ## Problem
-v3 splits into a kz/ package with per-resource subparsers. The entry
+v3 splits into a kanban_zone/ package with per-resource subparsers. The entry
 script needs to be rewritten as pure dispatch: load .env, parse global
 flags, build a Context (board, cache, pretty), then hand off to whichever
 resource handler argparse selected.
@@ -1499,9 +1499,9 @@ EOF
 
 Each resource module follows the same template:
 
-1. Define handler functions taking `(args, ctx)` and calling `kz.http.api_request`.
+1. Define handler functions taking `(args, ctx)` and calling `kanban_zone.http.api_request`.
 2. Define `register(subparsers)` that adds the resource's group subparser, then per-subcommand subparsers under it, each calling `set_defaults(func=handler_fn)`.
-3. Tests use `FakeApi`, asserting the right method/path/params/body and that handlers print the response via `kz.output.print_json`.
+3. Tests use `FakeApi`, asserting the right method/path/params/body and that handlers print the response via `kanban_zone.output.print_json`.
 
 Wiring each resource into the entry script is its own commit (touches `scripts/kanban_zone_api.py`).
 
@@ -1509,12 +1509,12 @@ For brevity in this plan, **fixture JSON files are introduced just-in-time** —
 
 ---
 
-### Task 9: Org module (`kz.org`)
+### Task 9: Org module (`kanban_zone.org`)
 
 **Endpoints:** `GET /me`, `GET /organization`. Two handlers, two subcommands. This is the simplest resource and establishes the pattern every other resource follows.
 
 **Files:**
-- Create: `scripts/kz/org.py`
+- Create: `scripts/kanban_zone/org.py`
 - Create: `tests/test_org.py`
 - Modify: `scripts/kanban_zone_api.py` (register org group)
 
@@ -1527,7 +1527,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import org as kz_org
+from kanban_zone import org as kanban_zone_org
 from tests.fakes import FakeApi
 
 
@@ -1543,7 +1543,7 @@ class TestOrg(unittest.TestCase):
         buf = io.StringIO()
         with FakeApi() as fake, patch("sys.stdout", buf):
             fake.expect("GET", "/me").returns({"organization": "Acme"})
-            kz_org.cmd_me(args=None, ctx=_StubCtx())
+            kanban_zone_org.cmd_me(args=None, ctx=_StubCtx())
         self.assertIn('"organization": "Acme"', buf.getvalue())
 
     def test_context_sends_include_flags(self):
@@ -1559,7 +1559,7 @@ class TestOrg(unittest.TestCase):
                 "includeColumns": False, "includeLabels": False,
                 "includeCustomFields": True,
             }).returns({"name": "Acme"})
-            kz_org.cmd_context(args=ns, ctx=_StubCtx())
+            kanban_zone_org.cmd_context(args=ns, ctx=_StubCtx())
         self.assertIn('"name": "Acme"', buf.getvalue())
 
 
@@ -1572,19 +1572,19 @@ if __name__ == "__main__":
 ```bash
 python3 -m unittest tests.test_org -v
 ```
-Expected: ImportError on `kz.org`.
+Expected: ImportError on `kanban_zone.org`.
 
-- [ ] **Step 3: Implement `scripts/kz/org.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/org.py`.**
 
 ```python
 """Organization context — /me, /organization."""
-from kz import http as kz_http
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import output as kanban_zone_output
 
 
 def cmd_me(args, ctx):
-    resp = kz_http.api_request("GET", "/me")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", "/me")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_context(args, ctx):
@@ -1595,8 +1595,8 @@ def cmd_context(args, ctx):
         "includeLabels": args.include_labels,
         "includeCustomFields": args.include_custom_fields,
     }
-    resp = kz_http.api_request("GET", "/organization", params=params)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", "/organization", params=params)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):
@@ -1619,7 +1619,7 @@ def register(subparsers):
 - [ ] **Step 4: Wire org into the entry script.** In `scripts/kanban_zone_api.py`, replace the `# Resource registrations` comment block with:
 
 ```python
-    from kz import org  # noqa: E402
+    from kanban_zone import org  # noqa: E402
     org.register(sub)
 ```
 
@@ -1640,7 +1640,7 @@ Expected: shows `me` and `context` subcommands.
 - [ ] **Step 7: Commit.**
 
 ```bash
-git add scripts/kz/org.py scripts/kanban_zone_api.py tests/test_org.py
+git add scripts/kanban_zone/org.py scripts/kanban_zone_api.py tests/test_org.py
 git commit -m "$(cat <<'EOF'
 Add org group (me, context)
 
@@ -1649,7 +1649,7 @@ v1.4 exposes /me and /organization for plan/feature/board discovery; v2
 had no equivalent.
 
 ## Solution
-kz/org.py implements cmd_me and cmd_context, both sending args.pretty
+kanban_zone/org.py implements cmd_me and cmd_context, both sending args.pretty
 through to print_json. context surfaces all five include flags
 (--include-boards/-members/-columns/-labels/-custom-fields). Wired into
 the entry script.
@@ -1665,12 +1665,12 @@ EOF
 
 ---
 
-### Task 10: Boards module (`kz.boards`)
+### Task 10: Boards module (`kanban_zone.boards`)
 
 **Endpoints:** `GET /boards`, `GET /boards/{publicId}`, `GET /boards/{publicId}/columns`, `GET /boards/{publicId}/labels`, `GET /boards/{publicId}/members`, `GET /boards/{publicId}/custom-fields`, `GET /templates/{publicId}`. Seven subcommands: `list`, `get`, `columns`, `labels`, `members`, `custom-fields`, `templates`.
 
 **Files:**
-- Create: `scripts/kz/boards.py`
+- Create: `scripts/kanban_zone/boards.py`
 - Create: `tests/test_boards.py`
 - Create: `tests/fixtures/boards_list.json`
 - Modify: `scripts/kanban_zone_api.py`
@@ -1703,7 +1703,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import boards as kz_boards
+from kanban_zone import boards as kanban_zone_boards
 from tests.fakes import FakeApi
 
 
@@ -1728,14 +1728,14 @@ class TestBoards(unittest.TestCase):
         buf = io.StringIO()
         with FakeApi() as fake, patch("sys.stdout", buf):
             fake.expect("GET", "/boards", params={"includeArchived": False, "includeColumns": False}).returns(_fixture("boards_list.json"))
-            kz_boards.cmd_list(_ns(include_archived=False, include_columns=False), _Ctx())
+            kanban_zone_boards.cmd_list(_ns(include_archived=False, include_columns=False), _Ctx())
         self.assertIn('"BOARD1"', buf.getvalue())
 
     def test_list_with_archived(self):
         with FakeApi() as fake:
             fake.expect("GET", "/boards", params={"includeArchived": True, "includeColumns": False}).returns({"count": 0, "boards": []})
             with patch("sys.stdout", io.StringIO()):
-                kz_boards.cmd_list(_ns(include_archived=True, include_columns=False), _Ctx())
+                kanban_zone_boards.cmd_list(_ns(include_archived=True, include_columns=False), _Ctx())
 
     def test_get_uses_publicId_and_includes(self):
         with FakeApi() as fake:
@@ -1744,7 +1744,7 @@ class TestBoards(unittest.TestCase):
                 "includeLabels": False, "includeCustomFields": False,
             }).returns({"publicId": "BOARD1", "name": "Roadmap"})
             with patch("sys.stdout", io.StringIO()):
-                kz_boards.cmd_get(_ns(
+                kanban_zone_boards.cmd_get(_ns(
                     include_columns=True, include_members=False,
                     include_labels=False, include_custom_fields=False,
                 ), _Ctx())
@@ -1753,37 +1753,37 @@ class TestBoards(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", "/boards/BOARD1/columns").returns([{"_id": "c1", "title": "Backlog"}])
             with patch("sys.stdout", io.StringIO()):
-                kz_boards.cmd_columns(_ns(), _Ctx())
+                kanban_zone_boards.cmd_columns(_ns(), _Ctx())
 
     def test_labels(self):
         with FakeApi() as fake:
             fake.expect("GET", "/boards/BOARD1/labels").returns([{"name": "Bug"}])
             with patch("sys.stdout", io.StringIO()):
-                kz_boards.cmd_labels(_ns(), _Ctx())
+                kanban_zone_boards.cmd_labels(_ns(), _Ctx())
 
     def test_members(self):
         with FakeApi() as fake:
             fake.expect("GET", "/boards/BOARD1/members").returns([{"email": "a@b.com"}])
             with patch("sys.stdout", io.StringIO()):
-                kz_boards.cmd_members(_ns(), _Ctx())
+                kanban_zone_boards.cmd_members(_ns(), _Ctx())
 
     def test_custom_fields(self):
         with FakeApi() as fake:
             fake.expect("GET", "/boards/BOARD1/custom-fields").returns([{"label": "Sprint"}])
             with patch("sys.stdout", io.StringIO()):
-                kz_boards.cmd_custom_fields(_ns(), _Ctx())
+                kanban_zone_boards.cmd_custom_fields(_ns(), _Ctx())
 
     def test_templates(self):
         with FakeApi() as fake:
             fake.expect("GET", "/templates/BOARD1").returns([{"publicId": "TPL1"}])
             with patch("sys.stdout", io.StringIO()):
-                kz_boards.cmd_templates(_ns(), _Ctx())
+                kanban_zone_boards.cmd_templates(_ns(), _Ctx())
 
     def test_get_requires_board(self):
         ctx = _Ctx()
         ctx.board = None
         with self.assertRaises(ValueError):
-            kz_boards.cmd_get(_ns(
+            kanban_zone_boards.cmd_get(_ns(
                 include_columns=False, include_members=False,
                 include_labels=False, include_custom_fields=False,
             ), ctx)
@@ -1800,12 +1800,12 @@ python3 -m unittest tests.test_boards -v
 ```
 Expected: ImportError.
 
-- [ ] **Step 4: Implement `scripts/kz/boards.py`.**
+- [ ] **Step 4: Implement `scripts/kanban_zone/boards.py`.**
 
 ```python
 """Boards group: list, get, columns, labels, members, custom-fields, templates."""
-from kz import http as kz_http
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import output as kanban_zone_output
 
 
 def _require_board(ctx):
@@ -1815,52 +1815,52 @@ def _require_board(ctx):
 
 
 def cmd_list(args, ctx):
-    resp = kz_http.api_request("GET", "/boards", params={
+    resp = kanban_zone_http.api_request("GET", "/boards", params={
         "includeArchived": args.include_archived,
         "includeColumns": args.include_columns,
     })
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_get(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/boards/{board}", params={
+    resp = kanban_zone_http.api_request("GET", f"/boards/{board}", params={
         "includeColumns": args.include_columns,
         "includeMembers": args.include_members,
         "includeLabels": args.include_labels,
         "includeCustomFields": args.include_custom_fields,
     })
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_columns(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/boards/{board}/columns")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/boards/{board}/columns")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_labels(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/boards/{board}/labels")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/boards/{board}/labels")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_members(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/boards/{board}/members")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/boards/{board}/members")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_custom_fields(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/boards/{board}/custom-fields")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/boards/{board}/custom-fields")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_templates(args, ctx):
     board = _require_board(ctx)
-    resp = kz_http.api_request("GET", f"/templates/{board}")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/templates/{board}")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):
@@ -1896,7 +1896,7 @@ def register(subparsers):
     p.set_defaults(func=cmd_templates)
 ```
 
-- [ ] **Step 5: Wire into entry script.** Add `from kz import boards` next to the org import and call `boards.register(sub)`.
+- [ ] **Step 5: Wire into entry script.** Add `from kanban_zone import boards` next to the org import and call `boards.register(sub)`.
 
 - [ ] **Step 6: Run — expect pass.**
 
@@ -1908,7 +1908,7 @@ Expected: 9 tests PASS.
 - [ ] **Step 7: Commit.**
 
 ```bash
-git add scripts/kz/boards.py tests/test_boards.py tests/fixtures/boards_list.json scripts/kanban_zone_api.py
+git add scripts/kanban_zone/boards.py tests/test_boards.py tests/fixtures/boards_list.json scripts/kanban_zone_api.py
 git commit -m "$(cat <<'EOF'
 Add boards group with sub-resources and templates
 
@@ -1918,7 +1918,7 @@ and /templates/{publicId}. v2 only had `boards` and `board` (the latter
 now deprecated as /board/{board}).
 
 ## Solution
-kz/boards.py implements 7 handlers (list, get, columns, labels, members,
+kanban_zone/boards.py implements 7 handlers (list, get, columns, labels, members,
 custom-fields, templates). list calls /boards; get and the sub-resource
 endpoints all use the new /boards/{publicId} paths. templates is grouped
 here because templates are board-scoped, not org-scoped.
@@ -1938,7 +1938,7 @@ EOF
 **Endpoints:** `GET /cards`, `GET /cards/{id}`, `GET /cards/{id}/history`, `GET /cards/{id}/metrics`. Cards is the largest module; it's split across three tasks (read / write / cross-cutting). This task covers reads.
 
 **Files:**
-- Create: `scripts/kz/cards.py`
+- Create: `scripts/kanban_zone/cards.py`
 - Create: `tests/test_cards_read.py`
 - Modify: `scripts/kanban_zone_api.py`
 
@@ -1953,8 +1953,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import cards as kz_cards
-from kz.cache import Cache
+from kanban_zone import cards as kanban_zone_cards
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -1980,7 +1980,7 @@ class TestCardsRead(unittest.TestCase):
                 "board": "BOARD1", "page": 1, "count": 100, "includeArchived": False,
             }).returns({"count": 0, "cards": [], "hasMore": False, "totalAvailable": 0})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_list(_ns(
+                kanban_zone_cards.cmd_list(_ns(
                     page=1, count=100, include_archived=False, days_since_last_update=None,
                     label=None, owner=None, column=None, priority=None, blocked=False, query=None,
                 ), _Ctx())
@@ -1992,7 +1992,7 @@ class TestCardsRead(unittest.TestCase):
                 "includeArchived": False, "daysSinceLastUpdate": 7,
             }).returns({"count": 0, "cards": [], "hasMore": False, "totalAvailable": 0})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_list(_ns(
+                kanban_zone_cards.cmd_list(_ns(
                     page=1, count=100, include_archived=False, days_since_last_update=7,
                     label=None, owner=None, column=None, priority=None, blocked=False, query=None,
                 ), _Ctx())
@@ -2010,7 +2010,7 @@ class TestCardsRead(unittest.TestCase):
             })
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                kz_cards.cmd_list(_ns(
+                kanban_zone_cards.cmd_list(_ns(
                     page=1, count=100, include_archived=False, days_since_last_update=None,
                     label="Bug", owner=None, column=None, priority=None, blocked=False, query=None,
                 ), _Ctx())
@@ -2023,13 +2023,13 @@ class TestCardsRead(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}").returns({"_id": CARD_OID, "number": 42})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_get(_ns(id="42"), ctx)
+                kanban_zone_cards.cmd_get(_ns(id="42"), ctx)
 
     def test_get_by_object_id_skips_resolution(self):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}").returns({"_id": CARD_OID, "number": 42})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_get(_ns(id=CARD_OID), _Ctx())
+                kanban_zone_cards.cmd_get(_ns(id=CARD_OID), _Ctx())
 
     def test_history_uses_oid_and_passes_from(self):
         ctx = _Ctx()
@@ -2038,7 +2038,7 @@ class TestCardsRead(unittest.TestCase):
             fake.expect("GET", f"/cards/{CARD_OID}/history",
                         params={"from": "2025-01-01"}).returns([])
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_history(_ns(id="42", from_date="2025-01-01"), ctx)
+                kanban_zone_cards.cmd_history(_ns(id="42", from_date="2025-01-01"), ctx)
 
     def test_metrics_uses_oid(self):
         ctx = _Ctx()
@@ -2046,7 +2046,7 @@ class TestCardsRead(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}/metrics").returns({"cycle": 1.5})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_metrics(_ns(id="42"), ctx)
+                kanban_zone_cards.cmd_metrics(_ns(id="42"), ctx)
 
 
 if __name__ == "__main__":
@@ -2060,16 +2060,16 @@ python3 -m unittest tests.test_cards_read -v
 ```
 Expected: ImportError.
 
-- [ ] **Step 3: Implement `scripts/kz/cards.py` (read-only handlers + register stub for the group).**
+- [ ] **Step 3: Implement `scripts/kanban_zone/cards.py` (read-only handlers + register stub for the group).**
 
 ```python
 """Cards group. Split across three logical sections: read, write, cross-cutting.
 
 This file holds all card subcommands; they are grouped here for cohesion since
 they share helpers (board resolution, OID resolution, client-side filters)."""
-from kz import http as kz_http
-from kz import ids as kz_ids
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import ids as kanban_zone_ids
+from kanban_zone import output as kanban_zone_output
 
 
 def _require_board(ctx):
@@ -2079,7 +2079,7 @@ def _require_board(ctx):
 
 
 def _resolve(ctx, value):
-    return kz_ids.resolve_card_object_id(value, _require_board(ctx), ctx.cache)
+    return kanban_zone_ids.resolve_card_object_id(value, _require_board(ctx), ctx.cache)
 
 
 def _get_field(card, name):
@@ -2120,7 +2120,7 @@ def cmd_list(args, ctx):
     }
     if args.days_since_last_update is not None:
         params["daysSinceLastUpdate"] = args.days_since_last_update
-    resp = kz_http.api_request("GET", "/cards", params=params)
+    resp = kanban_zone_http.api_request("GET", "/cards", params=params)
     if any([args.label, args.owner, args.column, args.priority, args.blocked, args.query]):
         resp = dict(resp or {})
         cards = _filter_cards(
@@ -2130,13 +2130,13 @@ def cmd_list(args, ctx):
         )
         resp["cards"] = cards
         resp["count"] = len(cards)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_get(args, ctx):
     oid = _resolve(ctx, args.id)
-    resp = kz_http.api_request("GET", f"/cards/{oid}")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_history(args, ctx):
@@ -2144,14 +2144,14 @@ def cmd_history(args, ctx):
     params = {}
     if args.from_date:
         params["from"] = args.from_date
-    resp = kz_http.api_request("GET", f"/cards/{oid}/history", params=params or None)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}/history", params=params or None)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_metrics(args, ctx):
     oid = _resolve(ctx, args.id)
-    resp = kz_http.api_request("GET", f"/cards/{oid}/metrics")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}/metrics")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):
@@ -2186,7 +2186,7 @@ def register(subparsers):
     p.set_defaults(func=cmd_metrics)
 ```
 
-- [ ] **Step 4: Wire into entry script.** Add `from kz import cards` and `cards.register(sub)`.
+- [ ] **Step 4: Wire into entry script.** Add `from kanban_zone import cards` and `cards.register(sub)`.
 
 - [ ] **Step 5: Run — expect pass.**
 
@@ -2198,7 +2198,7 @@ Expected: 7 tests PASS.
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add scripts/kz/cards.py tests/test_cards_read.py scripts/kanban_zone_api.py
+git add scripts/kanban_zone/cards.py tests/test_cards_read.py scripts/kanban_zone_api.py
 git commit -m "$(cat <<'EOF'
 Add cards group: list, get, history, metrics
 
@@ -2207,10 +2207,10 @@ v1.4 cards endpoints use ObjectId-keyed flat URLs and add /history and
 /metrics. v2 only had number-keyed list/get/create/update/move.
 
 ## Solution
-kz/cards.py read handlers: cmd_list calls GET /cards with pagination and
+kanban_zone/cards.py read handlers: cmd_list calls GET /cards with pagination and
 optional client-side filters (label/owner/column/priority/blocked/query)
 preserved from v2. cmd_get/cmd_history/cmd_metrics resolve the --id flag
-through kz.ids and call the new ObjectId paths. register wires the cards
+through kanban_zone.ids and call the new ObjectId paths. register wires the cards
 group with these four subcommands; write handlers come in the next task.
 
 ## Verified
@@ -2228,7 +2228,7 @@ EOF
 **Endpoints:** `POST /cards`, `PATCH /cards/{id}`, `POST /cards/{id}/move`, `DELETE /cards/{id}`. The bulk variant is also `POST /cards` (with multiple cards in body — same shape as v2's `create-cards`).
 
 **Files:**
-- Modify: `scripts/kz/cards.py`
+- Modify: `scripts/kanban_zone/cards.py`
 - Create: `tests/test_cards_write.py`
 
 - [ ] **Step 1: Write failing tests `tests/test_cards_write.py`.**
@@ -2243,8 +2243,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import cards as kz_cards
-from kz.cache import Cache
+from kanban_zone import cards as kanban_zone_cards
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -2272,7 +2272,7 @@ class TestCardsWrite(unittest.TestCase):
             }).returns({"cardsAdded": 1, "cards": [{"_id": CARD_OID, "number": 7}]})
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                kz_cards.cmd_create(_ns(
+                kanban_zone_cards.cmd_create(_ns(
                     title="X", description=None, description_file=None,
                     column_id=None, owner=None, priority=None, label=None,
                     size=None, due_at=None, blocked=False, blocked_reason=None,
@@ -2290,7 +2290,7 @@ class TestCardsWrite(unittest.TestCase):
                 }],
             }).returns({"cardsAdded": 1, "cards": []})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_create(_ns(
+                kanban_zone_cards.cmd_create(_ns(
                     title="X", description=None, description_file=None,
                     column_id=None, owner=None, priority=None, label=None,
                     size=None, due_at=None, blocked=False, blocked_reason=None,
@@ -2308,7 +2308,7 @@ class TestCardsWrite(unittest.TestCase):
                     "board": "BOARD1", "cards": [{"title": "A"}, {"title": "B"}],
                 }).returns({"cardsAdded": 2, "cards": []})
                 with patch("sys.stdout", io.StringIO()):
-                    kz_cards.cmd_create_bulk(_ns(file=fpath), _Ctx())
+                    kanban_zone_cards.cmd_create_bulk(_ns(file=fpath), _Ctx())
 
     def test_update_uses_patch_after_resolution(self):
         ctx = _Ctx()
@@ -2318,7 +2318,7 @@ class TestCardsWrite(unittest.TestCase):
                 "board": "BOARD1", "title": "New",
             }).returns({"_id": CARD_OID, "number": 42, "title": "New"})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_update(_ns(
+                kanban_zone_cards.cmd_update(_ns(
                     id="42", title="New", description=None, description_file=None,
                     owner=None, priority=None, label=None, size=None, due_at=None,
                     blocked=None, blocked_reason=None, watcher=[], custom_field=[],
@@ -2332,7 +2332,7 @@ class TestCardsWrite(unittest.TestCase):
                 "board": "BOARD1", "blocked": True, "blockedReason": "waiting",
             }).returns({"_id": CARD_OID})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_update(_ns(
+                kanban_zone_cards.cmd_update(_ns(
                     id="42", title=None, description=None, description_file=None,
                     owner=None, priority=None, label=None, size=None, due_at=None,
                     blocked=True, blocked_reason="waiting", watcher=[], custom_field=[],
@@ -2346,7 +2346,7 @@ class TestCardsWrite(unittest.TestCase):
                 "board": "BOARD1", "columnId": "COL2", "addToTop": False,
             }).returns({"_id": CARD_OID, "columnId": "COL2"})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_move(_ns(id="42", column_id="COL2", add_to_top=False), ctx)
+                kanban_zone_cards.cmd_move(_ns(id="42", column_id="COL2", add_to_top=False), ctx)
 
     def test_delete_invalidates_cache(self):
         ctx = _Ctx()
@@ -2355,7 +2355,7 @@ class TestCardsWrite(unittest.TestCase):
             fake.expect("DELETE", f"/cards/{CARD_OID}",
                         params={"board": "BOARD1"}).returns(None)
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_delete(_ns(id="42"), ctx)
+                kanban_zone_cards.cmd_delete(_ns(id="42"), ctx)
         self.assertIsNone(ctx.cache.get_card_oid("BOARD1", 42))
 
 
@@ -2370,7 +2370,7 @@ python3 -m unittest tests.test_cards_write -v
 ```
 Expected: AttributeError on missing handler.
 
-- [ ] **Step 3: Append write handlers to `scripts/kz/cards.py`.** After `cmd_metrics` and before `def register`:
+- [ ] **Step 3: Append write handlers to `scripts/kanban_zone/cards.py`.** After `cmd_metrics` and before `def register`:
 
 ```python
 def _parse_custom_fields(raw_list):
@@ -2423,8 +2423,8 @@ def cmd_create(args, ctx):
     board = _require_board(ctx)
     body = {"board": board, "addToTop": bool(getattr(args, "add_to_top", False)),
             "cards": [_card_input(args, include_title=True)]}
-    resp = kz_http.api_request("POST", "/cards", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/cards", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_create_bulk(args, ctx):
@@ -2432,8 +2432,8 @@ def cmd_create_bulk(args, ctx):
         payload = __import__("json").load(f)
     if "board" not in payload:
         payload["board"] = _require_board(ctx)
-    resp = kz_http.api_request("POST", "/cards", body=payload)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/cards", body=payload)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_update(args, ctx):
@@ -2441,8 +2441,8 @@ def cmd_update(args, ctx):
     oid = _resolve(ctx, args.id)
     body = _card_input(args, include_title=True)
     body["board"] = board
-    resp = kz_http.api_request("PATCH", f"/cards/{oid}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PATCH", f"/cards/{oid}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_move(args, ctx):
@@ -2450,16 +2450,16 @@ def cmd_move(args, ctx):
     oid = _resolve(ctx, args.id)
     body = {"board": board, "columnId": args.column_id,
             "addToTop": bool(getattr(args, "add_to_top", False))}
-    resp = kz_http.api_request("POST", f"/cards/{oid}/move", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", f"/cards/{oid}/move", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_delete(args, ctx):
     board = _require_board(ctx)
     oid = _resolve(ctx, args.id)
-    kz_http.api_request("DELETE", f"/cards/{oid}", params={"board": board})
+    kanban_zone_http.api_request("DELETE", f"/cards/{oid}", params={"board": board})
     ctx.cache.invalidate_card(board, oid)
-    kz_output.print_json({"deleted": True, "id": oid}, pretty=ctx.pretty)
+    kanban_zone_output.print_json({"deleted": True, "id": oid}, pretty=ctx.pretty)
 ```
 
 Then extend the existing `register` function — append these subparsers after the `metrics` parser:
@@ -2524,7 +2524,7 @@ Expected: 7 tests PASS.
 - [ ] **Step 5: Commit.**
 
 ```bash
-git add scripts/kz/cards.py tests/test_cards_write.py
+git add scripts/kanban_zone/cards.py tests/test_cards_write.py
 git commit -m "$(cat <<'EOF'
 Add cards write handlers (create, create-bulk, update, move, delete)
 
@@ -2534,7 +2534,7 @@ DELETE /cards/{id}. v2 has no delete and uses the deprecated PUT path.
 Bulk-create needs to read JSON from --file (preserve v2 shape).
 
 ## Solution
-cmd_update calls PATCH after resolving the --id through kz.ids; cmd_move
+cmd_update calls PATCH after resolving the --id through kanban_zone.ids; cmd_move
 keeps the existing /move semantics under the new flat path. cmd_delete
 calls DELETE and invalidates the cache entry. Shared _card_input helper
 builds the body with watchers/custom-fields and HTML description from
@@ -2555,7 +2555,7 @@ EOF
 **Endpoints used:** `PATCH /cards/{id}` (with `links` sub-schema for add/remove), plus client-side cross-board scan for search and WIP check.
 
 **Files:**
-- Modify: `scripts/kz/cards.py`
+- Modify: `scripts/kanban_zone/cards.py`
 - Create: `tests/test_cards_misc.py`
 
 - [ ] **Step 1: Write failing tests `tests/test_cards_misc.py`.**
@@ -2569,8 +2569,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import cards as kz_cards
-from kz.cache import Cache
+from kanban_zone import cards as kanban_zone_cards
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -2599,7 +2599,7 @@ class TestCardLinks(unittest.TestCase):
                 "links": {"add": [{"card": 99, "type": "related"}]},
             }).returns({})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_links_add(_ns(
+                kanban_zone_cards.cmd_links_add(_ns(
                     id="42", card=99, url=None, title=None, type="related",
                 ), ctx)
 
@@ -2613,7 +2613,7 @@ class TestCardLinks(unittest.TestCase):
                                     "type": "external"}]},
             }).returns({})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_links_add(_ns(
+                kanban_zone_cards.cmd_links_add(_ns(
                     id="42", card=None, url="https://x", title="Spec", type="external",
                 ), ctx)
 
@@ -2626,7 +2626,7 @@ class TestCardLinks(unittest.TestCase):
                 "links": {"remove": [{"card": 99}]},
             }).returns({})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_links_remove(_ns(
+                kanban_zone_cards.cmd_links_remove(_ns(
                     id="42", card=99, url=None,
                 ), ctx)
 
@@ -2648,7 +2648,7 @@ class TestCardsSearch(unittest.TestCase):
                         "hasMore": False})
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                kz_cards.cmd_search(_ns(query="deploy", label=None, owner=None), _Ctx())
+                kanban_zone_cards.cmd_search(_ns(query="deploy", label=None, owner=None), _Ctx())
             self.assertIn('"deploy soon"', buf.getvalue())
             self.assertNotIn('"buy lunch"', buf.getvalue())
 
@@ -2677,7 +2677,7 @@ class TestWipCheck(unittest.TestCase):
             })
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                kz_cards.cmd_wip_check(_ns(), _Ctx())
+                kanban_zone_cards.cmd_wip_check(_ns(), _Ctx())
             self.assertIn('"violation"', buf.getvalue())
             self.assertIn('"Doing"', buf.getvalue())
 
@@ -2693,7 +2693,7 @@ python3 -m unittest tests.test_cards_misc -v
 ```
 Expected: AttributeError.
 
-- [ ] **Step 3: Append handlers + register entries to `scripts/kz/cards.py`.**
+- [ ] **Step 3: Append handlers + register entries to `scripts/kanban_zone/cards.py`.**
 
 ```python
 def _links_payload(action, args):
@@ -2715,23 +2715,23 @@ def cmd_links_add(args, ctx):
     board = _require_board(ctx)
     oid = _resolve(ctx, args.id)
     body = {"board": board, "links": _links_payload("add", args)}
-    resp = kz_http.api_request("PATCH", f"/cards/{oid}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PATCH", f"/cards/{oid}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_links_remove(args, ctx):
     board = _require_board(ctx)
     oid = _resolve(ctx, args.id)
     body = {"board": board, "links": _links_payload("remove", args)}
-    resp = kz_http.api_request("PATCH", f"/cards/{oid}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PATCH", f"/cards/{oid}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def _fetch_all_cards(board, include_archived=False):
     page = 1
     out = []
     while True:
-        resp = kz_http.api_request("GET", "/cards", params={
+        resp = kanban_zone_http.api_request("GET", "/cards", params={
             "board": board, "page": page, "count": 100,
             "includeArchived": include_archived,
         }) or {}
@@ -2743,7 +2743,7 @@ def _fetch_all_cards(board, include_archived=False):
 
 
 def cmd_search(args, ctx):
-    boards_resp = kz_http.api_request("GET", "/boards",
+    boards_resp = kanban_zone_http.api_request("GET", "/boards",
                                        params={"includeArchived": False}) or {}
     matches = []
     for b in boards_resp.get("boards", []):
@@ -2756,13 +2756,13 @@ def cmd_search(args, ctx):
             c2["_board"] = b["publicId"]
             c2["_boardName"] = b.get("name")
             matches.append(c2)
-    kz_output.print_json({"count": len(matches), "cards": matches},
+    kanban_zone_output.print_json({"count": len(matches), "cards": matches},
                           pretty=ctx.pretty)
 
 
 def cmd_wip_check(args, ctx):
     board = _require_board(ctx)
-    board_resp = kz_http.api_request("GET", f"/boards/{board}", params={
+    board_resp = kanban_zone_http.api_request("GET", f"/boards/{board}", params={
         "includeColumns": True, "includeMembers": False,
         "includeLabels": False, "includeCustomFields": False,
     }) or {}
@@ -2786,7 +2786,7 @@ def cmd_wip_check(args, ctx):
             "columnId": cid, "title": col.get("title"),
             "current": n, "minWIP": min_w, "maxWIP": max_w, "status": status,
         })
-    kz_output.print_json({"board": board, "columns": report},
+    kanban_zone_output.print_json({"board": board, "columns": report},
                           pretty=ctx.pretty)
 ```
 
@@ -2827,7 +2827,7 @@ Expected: 5 tests PASS.
 - [ ] **Step 5: Commit.**
 
 ```bash
-git add scripts/kz/cards.py tests/test_cards_misc.py
+git add scripts/kanban_zone/cards.py tests/test_cards_misc.py
 git commit -m "$(cat <<'EOF'
 Add cards links/search/wip-check on PATCH endpoint
 
@@ -2852,12 +2852,12 @@ EOF
 
 ---
 
-### Task 14: Comments module (`kz.comments`)
+### Task 14: Comments module (`kanban_zone.comments`)
 
 **Endpoints:** `POST /comments`, `GET /cards/{id}/comments`. Two subcommands: `add`, `list`.
 
 **Files:**
-- Create: `scripts/kz/comments.py`
+- Create: `scripts/kanban_zone/comments.py`
 - Create: `tests/test_comments.py`
 - Modify: `scripts/kanban_zone_api.py`
 
@@ -2872,8 +2872,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import comments as kz_comments
-from kz.cache import Cache
+from kanban_zone import comments as kanban_zone_comments
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -2901,7 +2901,7 @@ class TestComments(unittest.TestCase):
                 "card": CARD_OID, "text": "hello",
             }).returns({"_id": "C1"})
             with patch("sys.stdout", io.StringIO()):
-                kz_comments.cmd_add(_ns(card="42", text="hello", text_file=None), ctx)
+                kanban_zone_comments.cmd_add(_ns(card="42", text="hello", text_file=None), ctx)
 
     def test_add_text_from_file(self):
         ctx = _Ctx()
@@ -2915,7 +2915,7 @@ class TestComments(unittest.TestCase):
                     "card": CARD_OID, "text": "from file",
                 }).returns({"_id": "C1"})
                 with patch("sys.stdout", io.StringIO()):
-                    kz_comments.cmd_add(_ns(card="42", text=None, text_file=f), ctx)
+                    kanban_zone_comments.cmd_add(_ns(card="42", text=None, text_file=f), ctx)
 
     def test_list_uses_card_subresource(self):
         ctx = _Ctx()
@@ -2923,12 +2923,12 @@ class TestComments(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}/comments").returns([{"_id": "C1"}])
             with patch("sys.stdout", io.StringIO()):
-                kz_comments.cmd_list(_ns(card="42"), ctx)
+                kanban_zone_comments.cmd_list(_ns(card="42"), ctx)
 
     def test_add_requires_text_or_file(self):
         ctx = _Ctx()
         with self.assertRaises(ValueError):
-            kz_comments.cmd_add(_ns(card="42", text=None, text_file=None), ctx)
+            kanban_zone_comments.cmd_add(_ns(card="42", text=None, text_file=None), ctx)
 
 
 if __name__ == "__main__":
@@ -2941,19 +2941,19 @@ if __name__ == "__main__":
 python3 -m unittest tests.test_comments -v
 ```
 
-- [ ] **Step 3: Implement `scripts/kz/comments.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/comments.py`.**
 
 ```python
 """Comments group: add, list."""
-from kz import http as kz_http
-from kz import ids as kz_ids
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import ids as kanban_zone_ids
+from kanban_zone import output as kanban_zone_output
 
 
 def _resolve(ctx, value):
     if not ctx.board:
         raise ValueError("--board or KANBAN_ZONE_BOARD_ID is required")
-    return kz_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
+    return kanban_zone_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
 
 
 def _read_text(args):
@@ -2968,14 +2968,14 @@ def cmd_add(args, ctx):
     if text is None:
         raise ValueError("Provide --text or --text-file")
     oid = _resolve(ctx, args.card)
-    resp = kz_http.api_request("POST", "/comments", body={"card": oid, "text": text})
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/comments", body={"card": oid, "text": text})
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_list(args, ctx):
     oid = _resolve(ctx, args.card)
-    resp = kz_http.api_request("GET", f"/cards/{oid}/comments")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}/comments")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):
@@ -3006,7 +3006,7 @@ Expected: 4 tests PASS.
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add scripts/kz/comments.py tests/test_comments.py scripts/kanban_zone_api.py
+git add scripts/kanban_zone/comments.py tests/test_comments.py scripts/kanban_zone_api.py
 git commit -m "$(cat <<'EOF'
 Add comments group (add, list)
 
@@ -3015,8 +3015,8 @@ v1.4 introduces POST /comments (flat URL with card in body) and
 GET /cards/{id}/comments. v2 had no comment commands.
 
 ## Solution
-kz/comments.py exposes add/list. add reads text from --text or
---text-file; both resolve --card via kz.ids and call the new flat URL.
+kanban_zone/comments.py exposes add/list. add reads text from --text or
+--text-file; both resolve --card via kanban_zone.ids and call the new flat URL.
 
 ## Verified
 python3 -m unittest tests.test_comments passes (4 tests).
@@ -3028,12 +3028,12 @@ EOF
 
 ---
 
-### Task 15: Checklists module (`kz.checklists`)
+### Task 15: Checklists module (`kanban_zone.checklists`)
 
 **Endpoints:** `POST /checklists`, `PATCH /checklists/{id}`, `DELETE /checklists/{id}`, `GET /cards/{id}/checklists`. Subcommands: `create`, `update`, `delete`, `list`.
 
 **Files:**
-- Create: `scripts/kz/checklists.py`
+- Create: `scripts/kanban_zone/checklists.py`
 - Create: `tests/test_checklists.py`
 - Modify: `scripts/kanban_zone_api.py`
 
@@ -3048,8 +3048,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import checklists as kz_chk
-from kz.cache import Cache
+from kanban_zone import checklists as kanban_zone_chk
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -3078,7 +3078,7 @@ class TestChecklists(unittest.TestCase):
                 "card": CARD_OID, "title": "Pre-flight",
             }).returns({"_id": CHK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_chk.cmd_create(_ns(card="42", title="Pre-flight", task=[]), ctx)
+                kanban_zone_chk.cmd_create(_ns(card="42", title="Pre-flight", task=[]), ctx)
 
     def test_create_with_inline_tasks(self):
         ctx = _Ctx()
@@ -3089,7 +3089,7 @@ class TestChecklists(unittest.TestCase):
                 "tasks": [{"description": "First"}, {"description": "Second"}],
             }).returns({"_id": CHK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_chk.cmd_create(_ns(
+                kanban_zone_chk.cmd_create(_ns(
                     card="42", title="QA", task=["First", "Second"],
                 ), ctx)
 
@@ -3099,7 +3099,7 @@ class TestChecklists(unittest.TestCase):
                 "title": "Renamed",
             }).returns({"_id": CHK_ID, "title": "Renamed"})
             with patch("sys.stdout", io.StringIO()):
-                kz_chk.cmd_update(_ns(id=CHK_ID, title="Renamed", position=None), _Ctx())
+                kanban_zone_chk.cmd_update(_ns(id=CHK_ID, title="Renamed", position=None), _Ctx())
 
     def test_update_position(self):
         with FakeApi() as fake:
@@ -3107,13 +3107,13 @@ class TestChecklists(unittest.TestCase):
                 "position": 1,
             }).returns({"_id": CHK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_chk.cmd_update(_ns(id=CHK_ID, title=None, position=1), _Ctx())
+                kanban_zone_chk.cmd_update(_ns(id=CHK_ID, title=None, position=1), _Ctx())
 
     def test_delete(self):
         with FakeApi() as fake:
             fake.expect("DELETE", f"/checklists/{CHK_ID}").returns(None)
             with patch("sys.stdout", io.StringIO()):
-                kz_chk.cmd_delete(_ns(id=CHK_ID), _Ctx())
+                kanban_zone_chk.cmd_delete(_ns(id=CHK_ID), _Ctx())
 
     def test_list_uses_card_subresource(self):
         ctx = _Ctx()
@@ -3121,7 +3121,7 @@ class TestChecklists(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}/checklists").returns([])
             with patch("sys.stdout", io.StringIO()):
-                kz_chk.cmd_list(_ns(card="42"), ctx)
+                kanban_zone_chk.cmd_list(_ns(card="42"), ctx)
 
 
 if __name__ == "__main__":
@@ -3130,19 +3130,19 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run — expect ImportError.**
 
-- [ ] **Step 3: Implement `scripts/kz/checklists.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/checklists.py`.**
 
 ```python
 """Checklists group: create, update, delete, list."""
-from kz import http as kz_http
-from kz import ids as kz_ids
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import ids as kanban_zone_ids
+from kanban_zone import output as kanban_zone_output
 
 
 def _resolve_card(ctx, value):
     if not ctx.board:
         raise ValueError("--board or KANBAN_ZONE_BOARD_ID is required")
-    return kz_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
+    return kanban_zone_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
 
 
 def cmd_create(args, ctx):
@@ -3150,8 +3150,8 @@ def cmd_create(args, ctx):
     body = {"card": oid, "title": args.title}
     if args.task:
         body["tasks"] = [{"description": t} for t in args.task]
-    resp = kz_http.api_request("POST", "/checklists", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/checklists", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_update(args, ctx):
@@ -3162,19 +3162,19 @@ def cmd_update(args, ctx):
         body["position"] = args.position
     if not body:
         raise ValueError("Provide at least one of --title or --position")
-    resp = kz_http.api_request("PATCH", f"/checklists/{args.id}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PATCH", f"/checklists/{args.id}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_delete(args, ctx):
-    kz_http.api_request("DELETE", f"/checklists/{args.id}")
-    kz_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
+    kanban_zone_http.api_request("DELETE", f"/checklists/{args.id}")
+    kanban_zone_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
 
 
 def cmd_list(args, ctx):
     oid = _resolve_card(ctx, args.card)
-    resp = kz_http.api_request("GET", f"/cards/{oid}/checklists")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}/checklists")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):
@@ -3216,7 +3216,7 @@ Expected: 6 tests PASS.
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add scripts/kz/checklists.py tests/test_checklists.py scripts/kanban_zone_api.py
+git add scripts/kanban_zone/checklists.py tests/test_checklists.py scripts/kanban_zone_api.py
 git commit -m "$(cat <<'EOF'
 Add checklists group (create, update, delete, list)
 
@@ -3226,7 +3226,7 @@ v1.4 exposes the full checklist lifecycle externally for the first time
 v2 had nothing.
 
 ## Solution
-kz/checklists.py implements create/update/delete/list. create resolves --card
+kanban_zone/checklists.py implements create/update/delete/list. create resolves --card
 to ObjectId and accepts repeatable --task to seed inline tasks. update
 patches title/position; delete uses the flat ObjectId URL; list uses the
 card sub-resource.
@@ -3241,12 +3241,12 @@ EOF
 
 ---
 
-### Task 16: Tasks module (`kz.tasks`)
+### Task 16: Tasks module (`kanban_zone.tasks`)
 
 **Endpoints:** `POST /tasks`, `PATCH /tasks/{id}`, `DELETE /tasks/{id}`, `POST /tasks/{id}/move`. Subcommands: `create`, `update`, `delete`, `move`.
 
 **Files:**
-- Create: `scripts/kz/tasks.py`
+- Create: `scripts/kanban_zone/tasks.py`
 - Create: `tests/test_tasks.py`
 - Modify: `scripts/kanban_zone_api.py`
 
@@ -3259,7 +3259,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import tasks as kz_tasks
+from kanban_zone import tasks as kanban_zone_tasks
 from tests.fakes import FakeApi
 
 
@@ -3285,7 +3285,7 @@ class TestTasks(unittest.TestCase):
                 "checklist": CHK_ID, "description": "Pick up groceries",
             }).returns({"_id": TASK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_create(_ns(
+                kanban_zone_tasks.cmd_create(_ns(
                     checklist=CHK_ID, description="Pick up groceries",
                     position=None, due_at=None,
                 ), _Ctx())
@@ -3297,7 +3297,7 @@ class TestTasks(unittest.TestCase):
                 "position": 0, "dueAt": "2026-06-01T17:00:00.000Z",
             }).returns({"_id": TASK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_create(_ns(
+                kanban_zone_tasks.cmd_create(_ns(
                     checklist=CHK_ID, description="X",
                     position=0, due_at="2026-06-01T17:00:00.000Z",
                 ), _Ctx())
@@ -3308,7 +3308,7 @@ class TestTasks(unittest.TestCase):
                 "completed": True,
             }).returns({"_id": TASK_ID, "completed": True})
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_update(_ns(
+                kanban_zone_tasks.cmd_update(_ns(
                     id=TASK_ID, completed=True, description=None,
                     position=None, due_at=None,
                 ), _Ctx())
@@ -3317,7 +3317,7 @@ class TestTasks(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("DELETE", f"/tasks/{TASK_ID}").returns(None)
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_delete(_ns(id=TASK_ID), _Ctx())
+                kanban_zone_tasks.cmd_delete(_ns(id=TASK_ID), _Ctx())
 
     def test_move_between_checklists(self):
         with FakeApi() as fake:
@@ -3327,7 +3327,7 @@ class TestTasks(unittest.TestCase):
                 "position": 0,
             }).returns({"_id": TASK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_move(_ns(
+                kanban_zone_tasks.cmd_move(_ns(
                     id=TASK_ID, checklist_from=CHK_ID,
                     checklist_to=DEST_CHK, position=0,
                 ), _Ctx())
@@ -3339,12 +3339,12 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run — expect ImportError.**
 
-- [ ] **Step 3: Implement `scripts/kz/tasks.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/tasks.py`.**
 
 ```python
 """Tasks group: create, update, delete, move."""
-from kz import http as kz_http
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import output as kanban_zone_output
 
 
 def cmd_create(args, ctx):
@@ -3353,8 +3353,8 @@ def cmd_create(args, ctx):
         body["position"] = args.position
     if args.due_at:
         body["dueAt"] = args.due_at
-    resp = kz_http.api_request("POST", "/tasks", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/tasks", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_update(args, ctx):
@@ -3369,13 +3369,13 @@ def cmd_update(args, ctx):
         body["dueAt"] = args.due_at
     if not body:
         raise ValueError("Provide one of --completed/--description/--position/--due-at")
-    resp = kz_http.api_request("PATCH", f"/tasks/{args.id}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PATCH", f"/tasks/{args.id}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_delete(args, ctx):
-    kz_http.api_request("DELETE", f"/tasks/{args.id}")
-    kz_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
+    kanban_zone_http.api_request("DELETE", f"/tasks/{args.id}")
+    kanban_zone_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
 
 
 def cmd_move(args, ctx):
@@ -3384,8 +3384,8 @@ def cmd_move(args, ctx):
         "checklistTo": args.checklist_to,
         "position": args.position,
     }
-    resp = kz_http.api_request("POST", f"/tasks/{args.id}/move", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", f"/tasks/{args.id}/move", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):
@@ -3432,7 +3432,7 @@ Expected: 5 tests PASS.
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add scripts/kz/tasks.py tests/test_tasks.py scripts/kanban_zone_api.py
+git add scripts/kanban_zone/tasks.py tests/test_tasks.py scripts/kanban_zone_api.py
 git commit -m "$(cat <<'EOF'
 Add tasks group (create, update, delete, move)
 
@@ -3441,7 +3441,7 @@ v1.4 exposes per-task lifecycle: POST /tasks, PATCH/DELETE /tasks/{id},
 POST /tasks/{id}/move. Mark-as-done is a PATCH with {"completed": true}.
 
 ## Solution
-kz/tasks.py implements create/update/delete/move. update accepts
+kanban_zone/tasks.py implements create/update/delete/move. update accepts
 --completed (bool), --description, --position, --due-at and includes only
 fields the user actually passed. move requires both --checklist-from and
 --checklist-to (canonical to support same-checklist reordering too).
@@ -3456,12 +3456,12 @@ EOF
 
 ---
 
-### Task 17: Tokens module (`kz.tokens`)
+### Task 17: Tokens module (`kanban_zone.tokens`)
 
 **Endpoints:** `POST /tokens`, `DELETE /tokens/{id}`, `GET /cards/{id}/tokens`. Subcommands: `assign`, `revoke`, `list`.
 
 **Files:**
-- Create: `scripts/kz/tokens.py`
+- Create: `scripts/kanban_zone/tokens.py`
 - Create: `tests/test_tokens.py`
 - Modify: `scripts/kanban_zone_api.py`
 
@@ -3476,8 +3476,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import tokens as kz_tokens
-from kz.cache import Cache
+from kanban_zone import tokens as kanban_zone_tokens
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -3506,13 +3506,13 @@ class TestTokens(unittest.TestCase):
                 "card": CARD_OID, "tokenId": "TKN1", "board": "BOARD1",
             }).returns({"_id": CARDTOKEN_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_tokens.cmd_assign(_ns(card="42", token_id="TKN1"), ctx)
+                kanban_zone_tokens.cmd_assign(_ns(card="42", token_id="TKN1"), ctx)
 
     def test_revoke(self):
         with FakeApi() as fake:
             fake.expect("DELETE", f"/tokens/{CARDTOKEN_ID}").returns(None)
             with patch("sys.stdout", io.StringIO()):
-                kz_tokens.cmd_revoke(_ns(id=CARDTOKEN_ID), _Ctx())
+                kanban_zone_tokens.cmd_revoke(_ns(id=CARDTOKEN_ID), _Ctx())
 
     def test_list_uses_card_subresource(self):
         ctx = _Ctx()
@@ -3520,7 +3520,7 @@ class TestTokens(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}/tokens").returns([])
             with patch("sys.stdout", io.StringIO()):
-                kz_tokens.cmd_list(_ns(card="42"), ctx)
+                kanban_zone_tokens.cmd_list(_ns(card="42"), ctx)
 
 
 if __name__ == "__main__":
@@ -3529,37 +3529,37 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run — expect ImportError.**
 
-- [ ] **Step 3: Implement `scripts/kz/tokens.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/tokens.py`.**
 
 ```python
 """Tokens group: assign, revoke, list (card share tokens)."""
-from kz import http as kz_http
-from kz import ids as kz_ids
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import ids as kanban_zone_ids
+from kanban_zone import output as kanban_zone_output
 
 
 def _resolve_card(ctx, value):
     if not ctx.board:
         raise ValueError("--board or KANBAN_ZONE_BOARD_ID is required")
-    return kz_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
+    return kanban_zone_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
 
 
 def cmd_assign(args, ctx):
     oid = _resolve_card(ctx, args.card)
     body = {"card": oid, "tokenId": args.token_id, "board": ctx.board}
-    resp = kz_http.api_request("POST", "/tokens", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/tokens", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_revoke(args, ctx):
-    kz_http.api_request("DELETE", f"/tokens/{args.id}")
-    kz_output.print_json({"revoked": True, "id": args.id}, pretty=ctx.pretty)
+    kanban_zone_http.api_request("DELETE", f"/tokens/{args.id}")
+    kanban_zone_output.print_json({"revoked": True, "id": args.id}, pretty=ctx.pretty)
 
 
 def cmd_list(args, ctx):
     oid = _resolve_card(ctx, args.card)
-    resp = kz_http.api_request("GET", f"/cards/{oid}/tokens")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}/tokens")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):
@@ -3593,7 +3593,7 @@ Expected: 3 tests PASS.
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add scripts/kz/tokens.py tests/test_tokens.py scripts/kanban_zone_api.py
+git add scripts/kanban_zone/tokens.py tests/test_tokens.py scripts/kanban_zone_api.py
 git commit -m "$(cat <<'EOF'
 Add tokens group (assign, revoke, list)
 
@@ -3602,7 +3602,7 @@ v1.4 introduces card share tokens: POST /tokens (with card+tokenId+board
 in body), DELETE /tokens/{id}, GET /cards/{id}/tokens.
 
 ## Solution
-kz/tokens.py implements assign/revoke/list. assign resolves --card to
+kanban_zone/tokens.py implements assign/revoke/list. assign resolves --card to
 ObjectId and posts {card, tokenId, board}; revoke deletes by token
 ObjectId; list uses the card sub-resource.
 
@@ -3616,12 +3616,12 @@ EOF
 
 ---
 
-### Task 18: Webhooks module + signature verifier (`kz.webhooks`)
+### Task 18: Webhooks module + signature verifier (`kanban_zone.webhooks`)
 
 **Endpoints:** `GET /webhooks`, `GET /webhooks/{id}`, `POST /webhooks`, `PUT /webhooks/{id}`, `DELETE /webhooks/{id}`, `POST /webhooks/{id}/test`. Plus the offline `verify-signature` helper (HMAC-SHA1).
 
 **Files:**
-- Create: `scripts/kz/webhooks.py`
+- Create: `scripts/kanban_zone/webhooks.py`
 - Create: `tests/test_webhooks.py`
 - Modify: `scripts/kanban_zone_api.py`
 
@@ -3639,7 +3639,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import webhooks as kz_webhooks
+from kanban_zone import webhooks as kanban_zone_webhooks
 from tests.fakes import FakeApi
 
 
@@ -3661,13 +3661,13 @@ class TestWebhooksCRUD(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", "/webhooks").returns([{"_id": HOOK_ID}])
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_list(_ns(), _Ctx())
+                kanban_zone_webhooks.cmd_list(_ns(), _Ctx())
 
     def test_get(self):
         with FakeApi() as fake:
             fake.expect("GET", f"/webhooks/{HOOK_ID}").returns({"_id": HOOK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_get(_ns(id=HOOK_ID), _Ctx())
+                kanban_zone_webhooks.cmd_get(_ns(id=HOOK_ID), _Ctx())
 
     def test_create(self):
         with FakeApi() as fake:
@@ -3676,7 +3676,7 @@ class TestWebhooksCRUD(unittest.TestCase):
                 "url": "https://h.example/webhook",
             }).returns({"_id": HOOK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_create(_ns(
+                kanban_zone_webhooks.cmd_create(_ns(
                     event="CARD_CREATED", url="https://h.example/webhook",
                 ), _Ctx())
 
@@ -3686,7 +3686,7 @@ class TestWebhooksCRUD(unittest.TestCase):
                 "url": "https://h.example/v2",
             }).returns({"_id": HOOK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_update(_ns(
+                kanban_zone_webhooks.cmd_update(_ns(
                     id=HOOK_ID, url="https://h.example/v2", event=None,
                 ), _Ctx())
 
@@ -3694,13 +3694,13 @@ class TestWebhooksCRUD(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("DELETE", f"/webhooks/{HOOK_ID}").returns(None)
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_delete(_ns(id=HOOK_ID), _Ctx())
+                kanban_zone_webhooks.cmd_delete(_ns(id=HOOK_ID), _Ctx())
 
     def test_test(self):
         with FakeApi() as fake:
             fake.expect("POST", f"/webhooks/{HOOK_ID}/test").returns({"sent": True})
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_test(_ns(id=HOOK_ID), _Ctx())
+                kanban_zone_webhooks.cmd_test(_ns(id=HOOK_ID), _Ctx())
 
 
 class TestVerifySignature(unittest.TestCase):
@@ -3719,7 +3719,7 @@ class TestVerifySignature(unittest.TestCase):
     def test_match_returns_exit_zero(self):
         buf = io.StringIO()
         with patch("sys.stdout", buf):
-            rc = kz_webhooks.cmd_verify_signature(_ns(
+            rc = kanban_zone_webhooks.cmd_verify_signature(_ns(
                 webhook_key=self.key, payload_file=self.payload_path,
                 signature=self.good,
             ), _Ctx())
@@ -3731,7 +3731,7 @@ class TestVerifySignature(unittest.TestCase):
     def test_mismatch_exits_one(self):
         buf = io.StringIO()
         with patch("sys.stdout", buf):
-            rc = kz_webhooks.cmd_verify_signature(_ns(
+            rc = kanban_zone_webhooks.cmd_verify_signature(_ns(
                 webhook_key=self.key, payload_file=self.payload_path,
                 signature="0" * 40,
             ), _Ctx())
@@ -3740,21 +3740,21 @@ class TestVerifySignature(unittest.TestCase):
         self.assertEqual(rc, 1)
 
     def test_key_from_env(self):
-        os.environ["KZ_WEBHOOK_KEY"] = self.key
+        os.environ["KANBAN_ZONE_WEBHOOK_KEY"] = self.key
         try:
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                rc = kz_webhooks.cmd_verify_signature(_ns(
+                rc = kanban_zone_webhooks.cmd_verify_signature(_ns(
                     webhook_key=None, payload_file=self.payload_path,
                     signature=self.good,
                 ), _Ctx())
             self.assertEqual(rc, 0)
         finally:
-            os.environ.pop("KZ_WEBHOOK_KEY")
+            os.environ.pop("KANBAN_ZONE_WEBHOOK_KEY")
 
     def test_missing_key_raises(self):
         with self.assertRaises(ValueError):
-            kz_webhooks.cmd_verify_signature(_ns(
+            kanban_zone_webhooks.cmd_verify_signature(_ns(
                 webhook_key=None, payload_file=self.payload_path,
                 signature=self.good,
             ), _Ctx())
@@ -3766,7 +3766,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run — expect ImportError.**
 
-- [ ] **Step 3: Implement `scripts/kz/webhooks.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/webhooks.py`.**
 
 ```python
 """Webhooks group: list, get, create, update, delete, test, verify-signature."""
@@ -3774,26 +3774,26 @@ import hashlib
 import hmac
 import os
 
-from kz import http as kz_http
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import output as kanban_zone_output
 
 
 def cmd_list(args, ctx):
-    resp = kz_http.api_request("GET", "/webhooks")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", "/webhooks")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_get(args, ctx):
-    resp = kz_http.api_request("GET", f"/webhooks/{args.id}")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/webhooks/{args.id}")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_create(args, ctx):
     if not ctx.board:
         raise ValueError("--board or KANBAN_ZONE_BOARD_ID is required")
     body = {"board": ctx.board, "event": args.event, "url": args.url}
-    resp = kz_http.api_request("POST", "/webhooks", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/webhooks", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_update(args, ctx):
@@ -3804,29 +3804,29 @@ def cmd_update(args, ctx):
         body["event"] = args.event
     if not body:
         raise ValueError("Provide --url or --event")
-    resp = kz_http.api_request("PUT", f"/webhooks/{args.id}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PUT", f"/webhooks/{args.id}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_delete(args, ctx):
-    kz_http.api_request("DELETE", f"/webhooks/{args.id}")
-    kz_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
+    kanban_zone_http.api_request("DELETE", f"/webhooks/{args.id}")
+    kanban_zone_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
 
 
 def cmd_test(args, ctx):
-    resp = kz_http.api_request("POST", f"/webhooks/{args.id}/test")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", f"/webhooks/{args.id}/test")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_verify_signature(args, ctx):
-    key = args.webhook_key or os.environ.get("KZ_WEBHOOK_KEY")
+    key = args.webhook_key or os.environ.get("KANBAN_ZONE_WEBHOOK_KEY")
     if not key:
-        raise ValueError("Provide --webhook-key or set KZ_WEBHOOK_KEY")
+        raise ValueError("Provide --webhook-key or set KANBAN_ZONE_WEBHOOK_KEY")
     with open(args.payload_file, "rb") as f:
         payload = f.read()
     computed = hmac.new(key.encode("utf-8"), payload, hashlib.sha1).hexdigest()
     matched = hmac.compare_digest(computed, args.signature)
-    kz_output.print_json({"verified": matched, "computed": computed},
+    kanban_zone_output.print_json({"verified": matched, "computed": computed},
                           pretty=ctx.pretty)
     return 0 if matched else 1
 
@@ -3866,7 +3866,7 @@ def register(subparsers):
 
     p = sub.add_parser("verify-signature",
                        help="Verify an HMAC-SHA1 webhook signature locally.")
-    p.add_argument("--webhook-key", help="Override KZ_WEBHOOK_KEY.")
+    p.add_argument("--webhook-key", help="Override KANBAN_ZONE_WEBHOOK_KEY.")
     p.add_argument("--payload-file", required=True,
                    help="Bytes that were signed (notification.payload).")
     p.add_argument("--signature", required=True, help="X-KanbanZone-Signature value.")
@@ -3885,7 +3885,7 @@ Expected: 10 tests PASS.
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add scripts/kz/webhooks.py tests/test_webhooks.py scripts/kanban_zone_api.py
+git add scripts/kanban_zone/webhooks.py tests/test_webhooks.py scripts/kanban_zone_api.py
 git commit -m "$(cat <<'EOF'
 Add webhooks group (CRUD, test, verify-signature)
 
@@ -3895,10 +3895,10 @@ docs flag HMAC-SHA1 signature verification as mandatory, so the skill
 should expose a local helper to make it reachable from any agent.
 
 ## Solution
-kz/webhooks.py implements list/get/create/update/delete/test against the
+kanban_zone/webhooks.py implements list/get/create/update/delete/test against the
 new /webhooks endpoints. create restricts --event to {CARD_CREATED,
 CARD_MOVED, CARD_UPDATED}. cmd_verify_signature is fully offline: reads
-the key from --webhook-key or KZ_WEBHOOK_KEY, signs the payload bytes
+the key from --webhook-key or KANBAN_ZONE_WEBHOOK_KEY, signs the payload bytes
 with HMAC-SHA1, compares constant-time against --signature, prints
 {verified, computed}, exits 0 on match / 1 on mismatch.
 
@@ -3912,12 +3912,12 @@ EOF
 
 ---
 
-### Task 19: Reports module (`kz.reports`)
+### Task 19: Reports module (`kanban_zone.reports`)
 
 **Endpoints:** 8 of `GET /boards/{publicId}/reports/{reportType}`. Subcommands: `throughput`, `arrival-rate`, `cycle-time`, `lead-time`, `flow`, `flow-efficiency`, `allocation`, `abandoned-effort`. Each is a thin wrapper over a shared `_run_report` helper.
 
 **Files:**
-- Create: `scripts/kz/reports.py`
+- Create: `scripts/kanban_zone/reports.py`
 - Create: `tests/test_reports.py`
 - Modify: `scripts/kanban_zone_api.py`
 
@@ -3930,7 +3930,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import reports as kz_reports
+from kanban_zone import reports as kanban_zone_reports
 from tests.fakes import FakeApi
 
 
@@ -3964,7 +3964,7 @@ class TestReports(unittest.TestCase):
                     fake.expect("GET", f"/boards/BOARD1/reports/{slug}",
                                 params={"from": "2026-01-01", "to": "2026-04-01"}
                                 ).returns({"data": []})
-                    handler = getattr(kz_reports, fn_name)
+                    handler = getattr(kanban_zone_reports, fn_name)
                     with patch("sys.stdout", io.StringIO()):
                         handler(_ns(from_date="2026-01-01", to_date="2026-04-01"), _Ctx())
 
@@ -3973,7 +3973,7 @@ class TestReports(unittest.TestCase):
             fake.expect("GET", "/boards/BOARD1/reports/throughput", params=None
                         ).returns({"data": []})
             with patch("sys.stdout", io.StringIO()):
-                kz_reports.cmd_throughput(_ns(from_date=None, to_date=None), _Ctx())
+                kanban_zone_reports.cmd_throughput(_ns(from_date=None, to_date=None), _Ctx())
 
 
 if __name__ == "__main__":
@@ -3982,12 +3982,12 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run — expect ImportError.**
 
-- [ ] **Step 3: Implement `scripts/kz/reports.py`.**
+- [ ] **Step 3: Implement `scripts/kanban_zone/reports.py`.**
 
 ```python
 """Reports group: 8 report types, all GET /boards/{publicId}/reports/{type}."""
-from kz import http as kz_http
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import output as kanban_zone_output
 
 
 def _run_report(report_type, args, ctx):
@@ -3998,11 +3998,11 @@ def _run_report(report_type, args, ctx):
         params["from"] = args.from_date
     if args.to_date:
         params["to"] = args.to_date
-    resp = kz_http.api_request(
+    resp = kanban_zone_http.api_request(
         "GET", f"/boards/{ctx.board}/reports/{report_type}",
         params=params or None,
     )
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_throughput(args, ctx): _run_report("throughput", args, ctx)
@@ -4050,7 +4050,7 @@ Expected: 2 tests PASS (subTest counts as one for unittest's pass count, but all
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add scripts/kz/reports.py tests/test_reports.py scripts/kanban_zone_api.py
+git add scripts/kanban_zone/reports.py tests/test_reports.py scripts/kanban_zone_api.py
 git commit -m "$(cat <<'EOF'
 Add reports group (8 report types)
 
@@ -4059,7 +4059,7 @@ v1.4 exposes 8 board-level analytics reports under
 /boards/{publicId}/reports/{type}; v2 had none.
 
 ## Solution
-kz/reports.py defines a shared _run_report helper and 8 thin wrappers
+kanban_zone/reports.py defines a shared _run_report helper and 8 thin wrappers
 (throughput, arrival-rate, cycle-time, lead-time, flow, flow-efficiency,
 allocation, abandoned-effort). Each wrapper has its own --help and
 --from-date/--to-date flags. Subparsers are wired from a (slug, handler)
@@ -4077,12 +4077,12 @@ EOF
 
 ## Phase 3 — Legacy aliases + integration
 
-### Task 20: Legacy aliases module (`kz.legacy`)
+### Task 20: Legacy aliases module (`kanban_zone.legacy`)
 
 **Goal:** Keep all 12 v2 flat commands working but suppressed from `--help`. Each alias dispatches to the matching grouped handler with the equivalent argparse `Namespace`.
 
 **Files:**
-- Create: `scripts/kz/legacy.py`
+- Create: `scripts/kanban_zone/legacy.py`
 - Create: `tests/test_legacy_aliases.py`
 - Modify: `scripts/kanban_zone_api.py`
 
@@ -4141,7 +4141,7 @@ if __name__ == "__main__":
 python3 -m unittest tests.test_legacy_aliases -v
 ```
 
-- [ ] **Step 3: Implement `scripts/kz/legacy.py`.** Each alias is a top-level subparser registered with `help=argparse.SUPPRESS`; its handler builds a fresh `Namespace` matching what the grouped handler expects.
+- [ ] **Step 3: Implement `scripts/kanban_zone/legacy.py`.** Each alias is a top-level subparser registered with `help=argparse.SUPPRESS`; its handler builds a fresh `Namespace` matching what the grouped handler expects.
 
 ```python
 """Hidden v2 flat-command aliases. Suppressed from --help, kept for back-compat.
@@ -4151,8 +4151,8 @@ grouped handler so existing scripts keep working without code changes.
 """
 import argparse
 
-from kz import boards as kz_boards
-from kz import cards as kz_cards
+from kanban_zone import boards as kanban_zone_boards
+from kanban_zone import cards as kanban_zone_cards
 
 
 def _add(sub, name, callback, configure=lambda p: None):
@@ -4165,7 +4165,7 @@ def _add(sub, name, callback, configure=lambda p: None):
 def _wrap_boards_list(args, ctx):
     args.include_archived = getattr(args, "include_archived", False)
     args.include_columns = getattr(args, "include_columns", False)
-    return kz_boards.cmd_list(args, ctx)
+    return kanban_zone_boards.cmd_list(args, ctx)
 
 
 def _wrap_boards_get(args, ctx):
@@ -4173,7 +4173,7 @@ def _wrap_boards_get(args, ctx):
     args.include_members = False
     args.include_labels = False
     args.include_custom_fields = False
-    return kz_boards.cmd_get(args, ctx)
+    return kanban_zone_boards.cmd_get(args, ctx)
 
 
 def _wrap_cards_list(args, ctx):
@@ -4184,49 +4184,49 @@ def _wrap_cards_list(args, ctx):
     for k in ("label", "owner", "column", "priority", "query"):
         setattr(args, k, getattr(args, k, None))
     args.blocked = getattr(args, "blocked", False)
-    return kz_cards.cmd_list(args, ctx)
+    return kanban_zone_cards.cmd_list(args, ctx)
 
 
 def _wrap_cards_get(args, ctx):
     args.id = args.number  # v2 used --number
-    return kz_cards.cmd_get(args, ctx)
+    return kanban_zone_cards.cmd_get(args, ctx)
 
 
 def _wrap_cards_create(args, ctx):
-    return kz_cards.cmd_create(args, ctx)
+    return kanban_zone_cards.cmd_create(args, ctx)
 
 
 def _wrap_cards_create_bulk(args, ctx):
-    return kz_cards.cmd_create_bulk(args, ctx)
+    return kanban_zone_cards.cmd_create_bulk(args, ctx)
 
 
 def _wrap_cards_update(args, ctx):
     args.id = str(args.id)  # accepts number-as-int from v2
-    return kz_cards.cmd_update(args, ctx)
+    return kanban_zone_cards.cmd_update(args, ctx)
 
 
 def _wrap_cards_move(args, ctx):
     args.id = str(args.id)
     args.add_to_top = getattr(args, "add_to_top", False)
-    return kz_cards.cmd_move(args, ctx)
+    return kanban_zone_cards.cmd_move(args, ctx)
 
 
 def _wrap_cards_links_add(args, ctx):
     args.id = str(args.id)
-    return kz_cards.cmd_links_add(args, ctx)
+    return kanban_zone_cards.cmd_links_add(args, ctx)
 
 
 def _wrap_cards_links_remove(args, ctx):
     args.id = str(args.id)
-    return kz_cards.cmd_links_remove(args, ctx)
+    return kanban_zone_cards.cmd_links_remove(args, ctx)
 
 
 def _wrap_cards_search(args, ctx):
-    return kz_cards.cmd_search(args, ctx)
+    return kanban_zone_cards.cmd_search(args, ctx)
 
 
 def _wrap_cards_wip_check(args, ctx):
-    return kz_cards.cmd_wip_check(args, ctx)
+    return kanban_zone_cards.cmd_wip_check(args, ctx)
 
 
 def register(subparsers):
@@ -4335,7 +4335,7 @@ Expected: 2 tests PASS.
 - [ ] **Step 6: Commit.**
 
 ```bash
-git add scripts/kz/legacy.py tests/test_legacy_aliases.py scripts/kanban_zone_api.py
+git add scripts/kanban_zone/legacy.py tests/test_legacy_aliases.py scripts/kanban_zone_api.py
 git commit -m "$(cat <<'EOF'
 Add hidden v2 back-compat aliases
 
@@ -4345,7 +4345,7 @@ that calls the v2 flat commands. Per the v3 design, all 12 flat commands
 must keep working but stay out of --help to encourage migration.
 
 ## Solution
-kz/legacy.py registers each v2 flat command as a top-level subparser with
+kanban_zone/legacy.py registers each v2 flat command as a top-level subparser with
 help=argparse.SUPPRESS. Each alias's handler reshapes the legacy argparse
 Namespace into the grouped handler's expected shape and dispatches.
 Tests assert: (a) root --help does not list any legacy command; (b) each
@@ -4686,18 +4686,18 @@ Required sections:
 
 1. **Sync clause (PROMINENT, top of file).** Verbatim:
    > **CLAUDE.md / AGENTS.md sync:** if both files exist in this repo, they MUST be identical and updated together in the same commit. SKILL.md and AGENTS.md are NOT required to be identical — SKILL.md is agent-facing, AGENTS.md is contributor-facing.
-2. **Project layout.** Tree of `scripts/kz/`, what each module owns, where tests live, where fixtures live.
+2. **Project layout.** Tree of `scripts/kanban_zone/`, what each module owns, where tests live, where fixtures live.
 3. **Add a new endpoint (template).** Step-by-step:
    - Add fixture in `tests/fixtures/`
    - Write failing test in `tests/test_<resource>.py`
-   - Implement handler + register subparser in `scripts/kz/<resource>.py`
+   - Implement handler + register subparser in `scripts/kanban_zone/<resource>.py`
    - Run `python3 -m unittest tests.test_<resource>`
    - Run `make coverage` — must remain ≥ 95 %
    - Update `tests/test_cli_help.py` GROUPS_AND_SUBCOMMANDS
    - Commit per platform style
 4. **Test commands.** `make test`, `make coverage`, `make coverage-html`, `make lint`.
 5. **Coverage requirement.** ≥ 95 %; PRs that drop below this must add tests, not lower the threshold.
-6. **Commit style.** Reference platform CLAUDE.md (this skill repo's parent platform conventions): subject ≤72 chars, body uses `## Problem` / `## Solution` / `## Verified`, KZ card link if applicable, `Co-Authored-By` trailer.
+6. **Commit style.** Reference platform CLAUDE.md (this skill repo's parent platform conventions): subject ≤72 chars, body uses `## Problem` / `## Solution` / `## Verified`, Kanban Zone card link if applicable, `Co-Authored-By` trailer.
 7. **No multi-line shell commands.** Use temp files for description bodies and inline scripts (existing v2 rule, preserved).
 
 - [ ] **Step 2: Verify section count.**
@@ -4715,7 +4715,7 @@ Rewrite AGENTS.md for v3 contributor workflow
 
 ## Problem
 AGENTS.md still describes the v2 monolithic script. v3 splits into a
-kz/ package with per-resource modules and a 95% coverage requirement;
+kanban_zone/ package with per-resource modules and a 95% coverage requirement;
 contributors need to know where to put new code, how to test it, and
 what commit style to follow.
 
@@ -4917,7 +4917,7 @@ All notable changes to the Kanban Zone skill. Versioning follows SemVer.
 
 ### Changed
 - Restructured `scripts/kanban_zone_api.py` from monolith to entry script
-  + `scripts/kz/` package with one module per resource.
+  + `scripts/kanban_zone/` package with one module per resource.
 - Wire calls migrated silently to v1.4 canonical paths
   (`PATCH /cards/{id}`, `POST /checklists`, `POST /comments`,
   `POST /tokens`, `GET /boards/{publicId}`). Deprecated v1.3 paths no
@@ -5033,11 +5033,11 @@ open htmlcov/index.html  # macOS; on Linux: xdg-open
 ```
 
 - [ ] **Step 3: Add tests for any uncovered branches.** Common gaps:
-- Error paths in `kz/http.py` (URL error, JSON decode error).
+- Error paths in `kanban_zone/http.py` (URL error, JSON decode error).
 - The `--no-cache` branch in `Cache.flush`.
 - `_filter_cards` with multiple filters combined.
 - The `register` legacy aliases for `link-card --url` (URL branch separate from card branch).
-- `verify-signature` with `--webhook-key` *and* `KZ_WEBHOOK_KEY` set (precedence test).
+- `verify-signature` with `--webhook-key` *and* `KANBAN_ZONE_WEBHOOK_KEY` set (precedence test).
 
 For each gap, write the test in the matching `tests/test_*.py`, run the file, then re-run `coverage report --fail-under=95`.
 

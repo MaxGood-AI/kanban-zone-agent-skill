@@ -1,13 +1,13 @@
 """Comments group: add, list."""
-from kz import http as kz_http
-from kz import ids as kz_ids
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import ids as kanban_zone_ids
+from kanban_zone import output as kanban_zone_output
 
 
 def _resolve(ctx, value):
     if not ctx.board:
         raise ValueError("--board or KANBAN_ZONE_BOARD_ID is required")
-    return kz_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
+    return kanban_zone_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
 
 
 def _read_text(args):
@@ -22,14 +22,14 @@ def cmd_add(args, ctx):
     if text is None:
         raise ValueError("Provide --text or --text-file")
     oid = _resolve(ctx, args.card)
-    resp = kz_http.api_request("POST", "/comments", body={"card": oid, "text": text})
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/comments", body={"card": oid, "text": text})
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_list(args, ctx):
     oid = _resolve(ctx, args.card)
-    resp = kz_http.api_request("GET", f"/cards/{oid}/comments")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}/comments")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):

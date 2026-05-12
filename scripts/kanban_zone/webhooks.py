@@ -3,26 +3,26 @@ import hashlib
 import hmac
 import os
 
-from kz import http as kz_http
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import output as kanban_zone_output
 
 
 def cmd_list(args, ctx):
-    resp = kz_http.api_request("GET", "/webhooks")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", "/webhooks")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_get(args, ctx):
-    resp = kz_http.api_request("GET", f"/webhooks/{args.id}")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/webhooks/{args.id}")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_create(args, ctx):
     if not ctx.board:
         raise ValueError("--board or KANBAN_ZONE_BOARD_ID is required")
     body = {"board": ctx.board, "event": args.event, "url": args.url}
-    resp = kz_http.api_request("POST", "/webhooks", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/webhooks", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_update(args, ctx):
@@ -33,29 +33,29 @@ def cmd_update(args, ctx):
         body["event"] = args.event
     if not body:
         raise ValueError("Provide --url or --event")
-    resp = kz_http.api_request("PUT", f"/webhooks/{args.id}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PUT", f"/webhooks/{args.id}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_delete(args, ctx):
-    kz_http.api_request("DELETE", f"/webhooks/{args.id}")
-    kz_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
+    kanban_zone_http.api_request("DELETE", f"/webhooks/{args.id}")
+    kanban_zone_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
 
 
 def cmd_test(args, ctx):
-    resp = kz_http.api_request("POST", f"/webhooks/{args.id}/test")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", f"/webhooks/{args.id}/test")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_verify_signature(args, ctx):
-    key = args.webhook_key or os.environ.get("KZ_WEBHOOK_KEY")
+    key = args.webhook_key or os.environ.get("KANBAN_ZONE_WEBHOOK_KEY")
     if not key:
-        raise ValueError("Provide --webhook-key or set KZ_WEBHOOK_KEY")
+        raise ValueError("Provide --webhook-key or set KANBAN_ZONE_WEBHOOK_KEY")
     with open(args.payload_file, "rb") as f:
         payload = f.read()
     computed = hmac.new(key.encode("utf-8"), payload, hashlib.sha1).hexdigest()
     matched = hmac.compare_digest(computed, args.signature)
-    kz_output.print_json({"verified": matched, "computed": computed},
+    kanban_zone_output.print_json({"verified": matched, "computed": computed},
                           pretty=ctx.pretty)
     return 0 if matched else 1
 
@@ -95,7 +95,7 @@ def register(subparsers):
 
     p = sub.add_parser("verify-signature",
                        help="Verify an HMAC-SHA1 webhook signature locally.")
-    p.add_argument("--webhook-key", help="Override KZ_WEBHOOK_KEY.")
+    p.add_argument("--webhook-key", help="Override KANBAN_ZONE_WEBHOOK_KEY.")
     p.add_argument("--payload-file", required=True,
                    help="Bytes that were signed (notification.payload).")
     p.add_argument("--signature", required=True, help="X-KanbanZone-Signature value.")

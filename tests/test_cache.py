@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, "scripts")
-from kz.cache import Cache
+from kanban_zone.cache import Cache
 
 
 class TestCache(unittest.TestCase):

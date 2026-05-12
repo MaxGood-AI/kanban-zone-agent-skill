@@ -1,11 +1,11 @@
 """Organization context — /me, /organization."""
-from kz import http as kz_http
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import output as kanban_zone_output
 
 
 def cmd_me(args, ctx):
-    resp = kz_http.api_request("GET", "/me")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", "/me")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_context(args, ctx):
@@ -16,8 +16,8 @@ def cmd_context(args, ctx):
         "includeLabels": args.include_labels,
         "includeCustomFields": args.include_custom_fields,
     }
-    resp = kz_http.api_request("GET", "/organization", params=params)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", "/organization", params=params)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):

@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import output
+from kanban_zone import output
 
 
 class TestPrintJson(unittest.TestCase):

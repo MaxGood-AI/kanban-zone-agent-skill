@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Kanban Zone CLI — v3 entry point.
 
-Resource handlers live in scripts/kz/<resource>.py. Each resource module
+Resource handlers live in scripts/kanban_zone/<resource>.py. Each resource module
 exposes register(subparsers, ctx) that wires its grouped subparser into
 the shared dispatcher.
 """
@@ -12,9 +12,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from kz import http as kz_http  # noqa: E402
-from kz import output as kz_output  # noqa: E402
-from kz.cache import Cache  # noqa: E402
+from kanban_zone import http as kanban_zone_http  # noqa: E402
+from kanban_zone import output as kanban_zone_output  # noqa: E402
+from kanban_zone.cache import Cache  # noqa: E402
 
 
 def _load_env_file():
@@ -62,34 +62,34 @@ def build_parser():
     sub = parser.add_subparsers(dest="group")
     sub.required = True
 
-    from kz import org  # noqa: E402
+    from kanban_zone import org  # noqa: E402
     org.register(sub)
 
-    from kz import boards  # noqa: E402
+    from kanban_zone import boards  # noqa: E402
     boards.register(sub)
 
-    from kz import cards  # noqa: E402
+    from kanban_zone import cards  # noqa: E402
     cards.register(sub)
 
-    from kz import comments  # noqa: E402
+    from kanban_zone import comments  # noqa: E402
     comments.register(sub)
 
-    from kz import checklists  # noqa: E402
+    from kanban_zone import checklists  # noqa: E402
     checklists.register(sub)
 
-    from kz import tasks  # noqa: E402
+    from kanban_zone import tasks  # noqa: E402
     tasks.register(sub)
 
-    from kz import tokens  # noqa: E402
+    from kanban_zone import tokens  # noqa: E402
     tokens.register(sub)
 
-    from kz import webhooks  # noqa: E402
+    from kanban_zone import webhooks  # noqa: E402
     webhooks.register(sub)
 
-    from kz import reports  # noqa: E402
+    from kanban_zone import reports  # noqa: E402
     reports.register(sub)
 
-    from kz import legacy  # noqa: E402
+    from kanban_zone import legacy  # noqa: E402
     legacy.register(sub)
 
     return parser
@@ -100,14 +100,14 @@ def main(argv=None):
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.api_token:
-        kz_http.set_api_token(args.api_token)
+        kanban_zone_http.set_api_token(args.api_token)
     ctx = Context(args)
     try:
         return args.func(args, ctx)
-    except kz_http.KZApiError as exc:
-        kz_output.error_exit(str(exc), status=exc.status)
-    except (kz_http.KZAuthError, ValueError) as exc:
-        kz_output.error_exit(str(exc))
+    except kanban_zone_http.KanbanZoneApiError as exc:
+        kanban_zone_output.error_exit(str(exc), status=exc.status)
+    except (kanban_zone_http.KanbanZoneAuthError, ValueError) as exc:
+        kanban_zone_output.error_exit(str(exc))
 
 
 if __name__ == "__main__":

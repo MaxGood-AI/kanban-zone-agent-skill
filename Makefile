@@ -16,4 +16,4 @@ lint:
 	python3 -m compileall -q scripts tests
 
 clean:
-	rm -rf .coverage htmlcov tests/__pycache__ scripts/__pycache__ scripts/kz/__pycache__
+	rm -rf .coverage htmlcov tests/__pycache__ scripts/__pycache__ scripts/kanban_zone/__pycache__

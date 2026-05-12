@@ -4,8 +4,8 @@ import tempfile
 import unittest
 
 sys.path.insert(0, "scripts")
-from kz import ids
-from kz.cache import Cache
+from kanban_zone import ids
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -23,11 +23,11 @@ class TestDetectIdKind(unittest.TestCase):
         self.assertEqual(ids.detect_id_kind(CARD_OID.upper()), "object_id")
 
     def test_short_hex_raises(self):
-        with self.assertRaises(ids.KZIdError):
+        with self.assertRaises(ids.KanbanZoneIdError):
             ids.detect_id_kind("abc123")
 
     def test_empty_raises(self):
-        with self.assertRaises(ids.KZIdError):
+        with self.assertRaises(ids.KanbanZoneIdError):
             ids.detect_id_kind("")
 
     def test_non_string_input_is_coerced(self):
@@ -88,7 +88,7 @@ class TestResolveCardObjectId(unittest.TestCase):
             fake.expect("GET", "/cards", params={
                 "board": "BOARD1", "page": 1, "count": 100, "includeArchived": False,
             }).returns({"count": 0, "totalAvailable": 0, "hasMore": False, "cards": []})
-            with self.assertRaises(ids.KZIdError):
+            with self.assertRaises(ids.KanbanZoneIdError):
                 ids.resolve_card_object_id("999", "BOARD1", self.cache)
 
     def test_resolve_finds_card_mid_page_and_stops(self):
@@ -149,10 +149,10 @@ class TestResolveCardNumber(unittest.TestCase):
             self.assertEqual(self.cache.get_card_oid("B", 42), CARD_OID)
 
     def test_object_id_no_number_field_raises(self):
-        """resolve_card_number raises KZIdError when API response lacks 'number' (line 69)."""
+        """resolve_card_number raises KanbanZoneIdError when API response lacks 'number' (line 69)."""
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}").returns({"_id": CARD_OID})
-            with self.assertRaises(ids.KZIdError):
+            with self.assertRaises(ids.KanbanZoneIdError):
                 ids.resolve_card_number(CARD_OID, "B", self.cache)
 
 

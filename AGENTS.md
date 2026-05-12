@@ -6,11 +6,11 @@
 
 ## Project Layout
 
-The kanban-zone v3 skill is organized as a modular Python package under `scripts/kz/` with one module per resource type, plus support modules for cross-cutting concerns:
+The kanban-zone v3 skill is organized as a modular Python package under `scripts/kanban_zone/` with one module per resource type, plus support modules for cross-cutting concerns:
 
 ```
 scripts/
-├── kz/
+├── kanban_zone/
 │   ├── __init__.py             # Package marker
 │   ├── http.py                 # HTTP client wrapper; handles auth, encoding, error handling
 │   ├── output.py               # JSON output formatter; pretty-printing
@@ -33,10 +33,10 @@ scripts/
 tests/
 ├── __init__.py
 ├── fakes.py                    # FakeApi mock for testing; in-memory board model
-├── test_http.py                # kz.http tests
-├── test_output.py              # kz.output tests
-├── test_cache.py               # kz.cache tests
-├── test_ids.py                 # kz.ids tests
+├── test_http.py                # kanban_zone.http tests
+├── test_output.py              # kanban_zone.output tests
+├── test_cache.py               # kanban_zone.cache tests
+├── test_ids.py                 # kanban_zone.ids tests
 ├── test_org.py                 # org module tests (me, context)
 ├── test_boards.py              # boards module tests (7 subcommands)
 ├── test_cards_read.py          # cards read operations (list, get)
@@ -101,7 +101,7 @@ Create a test file `tests/test_<resource>.py` (or add to an existing one):
 ```python
 import unittest
 from tests.fakes import FakeApi
-from kz import <resource>  # import the module you're testing
+from kanban_zone import <resource>  # import the module you're testing
 
 class TestMyResource(unittest.TestCase):
     def setUp(self):
@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
 ### 3. Implement the handler
 
-In `scripts/kz/<resource>.py`, add:
+In `scripts/kanban_zone/<resource>.py`, add:
 
 ```python
 def cmd_my_command(args, ctx):
@@ -148,12 +148,12 @@ def cmd_my_command(args, ctx):
         raise ValueError("--my-required-arg is required")
 
     # Call the API
-    resp = kz_http.api_request("GET", f"/my-endpoint/{args.id}", params={
+    resp = kanban_zone_http.api_request("GET", f"/my-endpoint/{args.id}", params={
         "someParam": args.some_param,
     })
 
     # Output JSON
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 ```
 
 **Module-level pattern:** all handlers have signature `cmd_<name>(args, ctx)` where:
@@ -172,7 +172,7 @@ def register(subparsers):
         p = subparsers.add_parser("my-command", help="Short description of my-command")
         p.add_argument("--my-required-arg", required=True, help="Description")
         p.add_argument("--my-optional-arg", default="default-value", help="Description")
-        p.set_defaults(handler=kz_<resource>.cmd_my_command)
+        p.set_defaults(handler=kanban_zone_<resource>.cmd_my_command)
 
     _add_my_command(subparsers)
 ```
@@ -216,7 +216,7 @@ python3 -m unittest tests.test_cli_help
 Once all tests pass and coverage is ≥95%, commit with a clear message:
 
 ```bash
-git add scripts/kz/<resource>.py tests/test_<resource>.py tests/fixtures/<name>.json
+git add scripts/kanban_zone/<resource>.py tests/test_<resource>.py tests/fixtures/<name>.json
 git commit -m "$(cat <<'EOF'
 Add my-command subcommand
 
@@ -224,7 +224,7 @@ Add my-command subcommand
 Users needed a way to [describe the user need].
 
 ## Solution
-Added cmd_my_command() handler in kz.<resource> with --my-required-arg and --my-optional-arg.
+Added cmd_my_command() handler in kanban_zone.<resource> with --my-required-arg and --my-optional-arg.
 Test coverage is comprehensive with fixtures in tests/fixtures/<name>.json.
 
 ## Verified
@@ -277,7 +277,7 @@ Add card-comment subcommand
 Users could not add comments to cards via the CLI; only read-only operations existed.
 
 ## Solution
-Implemented cmd_add_comment() in kz.comments with --id and --text arguments.
+Implemented cmd_add_comment() in kanban_zone.comments with --id and --text arguments.
 Handler calls POST /cards/<id>/comments with the comment body.
 Added test_comments.py with FakeApi-based unit tests covering both success and error paths.
 

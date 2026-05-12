@@ -6,8 +6,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import comments as kz_comments
-from kz.cache import Cache
+from kanban_zone import comments as kanban_zone_comments
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -35,7 +35,7 @@ class TestComments(unittest.TestCase):
                 "card": CARD_OID, "text": "hello",
             }).returns({"_id": "C1"})
             with patch("sys.stdout", io.StringIO()):
-                kz_comments.cmd_add(_ns(card="42", text="hello", text_file=None), ctx)
+                kanban_zone_comments.cmd_add(_ns(card="42", text="hello", text_file=None), ctx)
 
     def test_add_text_from_file(self):
         ctx = _Ctx()
@@ -49,7 +49,7 @@ class TestComments(unittest.TestCase):
                     "card": CARD_OID, "text": "from file",
                 }).returns({"_id": "C1"})
                 with patch("sys.stdout", io.StringIO()):
-                    kz_comments.cmd_add(_ns(card="42", text=None, text_file=f), ctx)
+                    kanban_zone_comments.cmd_add(_ns(card="42", text=None, text_file=f), ctx)
 
     def test_list_uses_card_subresource(self):
         ctx = _Ctx()
@@ -57,19 +57,19 @@ class TestComments(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}/comments").returns([{"_id": "C1"}])
             with patch("sys.stdout", io.StringIO()):
-                kz_comments.cmd_list(_ns(card="42"), ctx)
+                kanban_zone_comments.cmd_list(_ns(card="42"), ctx)
 
     def test_add_requires_text_or_file(self):
         ctx = _Ctx()
         with self.assertRaises(ValueError):
-            kz_comments.cmd_add(_ns(card="42", text=None, text_file=None), ctx)
+            kanban_zone_comments.cmd_add(_ns(card="42", text=None, text_file=None), ctx)
 
     def test_resolve_requires_board(self):
         """_resolve raises ValueError when board is falsy (line 9)."""
         ctx = _Ctx()
         ctx.board = None
         with self.assertRaises(ValueError):
-            kz_comments.cmd_list(_ns(card="42"), ctx)
+            kanban_zone_comments.cmd_list(_ns(card="42"), ctx)
 
 
 if __name__ == "__main__":

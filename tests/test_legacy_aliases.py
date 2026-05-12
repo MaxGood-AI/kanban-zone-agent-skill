@@ -10,7 +10,7 @@ from unittest.mock import patch
 SCRIPT = os.path.join("scripts", "kanban_zone_api.py")
 
 sys.path.insert(0, "scripts")
-from kz import boards as kz_boards, cards as kz_cards  # noqa: E402
+from kanban_zone import boards as kanban_zone_boards, cards as kanban_zone_cards  # noqa: E402
 from tests.fakes import FakeApi  # noqa: E402
 
 
@@ -60,7 +60,7 @@ class TestNoSubcommandFallback(unittest.TestCase):
                 params={"includeArchived": False, "includeColumns": False},
             ).returns({"count": 0, "boards": []})
             with patch("sys.stdout", io.StringIO()):
-                kz_boards.cmd_list(
+                kanban_zone_boards.cmd_list(
                     Namespace(include_archived=False, include_columns=False),
                     ctx,
                 )
@@ -74,7 +74,7 @@ class TestNoSubcommandFallback(unittest.TestCase):
                 params={"board": "B1", "page": 1, "count": 100, "includeArchived": False},
             ).returns({"count": 0, "cards": [], "hasMore": False})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_list(
+                kanban_zone_cards.cmd_list(
                     Namespace(
                         page=1, count=100, include_archived=False,
                         days_since_last_update=None,

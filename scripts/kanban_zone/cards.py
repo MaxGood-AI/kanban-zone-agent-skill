@@ -2,9 +2,9 @@
 
 This file holds all card subcommands; they are grouped here for cohesion since
 they share helpers (board resolution, OID resolution, client-side filters)."""
-from kz import http as kz_http
-from kz import ids as kz_ids
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import ids as kanban_zone_ids
+from kanban_zone import output as kanban_zone_output
 
 
 def _unwrap_card(card):
@@ -32,7 +32,7 @@ def _require_board(ctx):
 
 
 def _resolve(ctx, value):
-    return kz_ids.resolve_card_object_id(value, _require_board(ctx), ctx.cache)
+    return kanban_zone_ids.resolve_card_object_id(value, _require_board(ctx), ctx.cache)
 
 
 def _get_field(card, name):
@@ -75,7 +75,7 @@ def cmd_list(args, ctx):
     }
     if args.days_since_last_update is not None:
         params["daysSinceLastUpdate"] = args.days_since_last_update
-    resp = kz_http.api_request("GET", "/cards", params=params)
+    resp = kanban_zone_http.api_request("GET", "/cards", params=params)
     if any([args.label, args.owner, args.column, args.priority, args.blocked, args.query]):
         resp = dict(resp or {})
         cards = _filter_cards(
@@ -85,13 +85,13 @@ def cmd_list(args, ctx):
         )
         resp["cards"] = cards
         resp["count"] = len(cards)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_get(args, ctx):
     oid = _resolve(ctx, args.id)
-    resp = kz_http.api_request("GET", f"/cards/{oid}")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_history(args, ctx):
@@ -99,14 +99,14 @@ def cmd_history(args, ctx):
     params = {}
     if args.from_date:
         params["from"] = args.from_date
-    resp = kz_http.api_request("GET", f"/cards/{oid}/history", params=params or None)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}/history", params=params or None)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_metrics(args, ctx):
     oid = _resolve(ctx, args.id)
-    resp = kz_http.api_request("GET", f"/cards/{oid}/metrics")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}/metrics")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def _parse_custom_fields(raw_list):
@@ -159,8 +159,8 @@ def cmd_create(args, ctx):
     board = _require_board(ctx)
     body = {"board": board, "addToTop": bool(getattr(args, "add_to_top", False)),
             "cards": [_card_input(args, include_title=True)]}
-    resp = kz_http.api_request("POST", "/cards", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/cards", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_create_bulk(args, ctx):
@@ -168,8 +168,8 @@ def cmd_create_bulk(args, ctx):
         payload = __import__("json").load(f)
     if "board" not in payload:
         payload["board"] = _require_board(ctx)
-    resp = kz_http.api_request("POST", "/cards", body=payload)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/cards", body=payload)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_update(args, ctx):
@@ -177,8 +177,8 @@ def cmd_update(args, ctx):
     oid = _resolve(ctx, args.id)
     body = _card_input(args, include_title=True)
     body["board"] = board
-    resp = kz_http.api_request("PATCH", f"/cards/{oid}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PATCH", f"/cards/{oid}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_move(args, ctx):
@@ -186,16 +186,16 @@ def cmd_move(args, ctx):
     oid = _resolve(ctx, args.id)
     body = {"board": board, "columnId": args.column_id,
             "addToTop": bool(getattr(args, "add_to_top", False))}
-    resp = kz_http.api_request("POST", f"/cards/{oid}/move", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", f"/cards/{oid}/move", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_delete(args, ctx):
     board = _require_board(ctx)
     oid = _resolve(ctx, args.id)
-    kz_http.api_request("DELETE", f"/cards/{oid}", params={"board": board})
+    kanban_zone_http.api_request("DELETE", f"/cards/{oid}", params={"board": board})
     ctx.cache.invalidate_card(board, oid)
-    kz_output.print_json({"deleted": True, "id": oid}, pretty=ctx.pretty)
+    kanban_zone_output.print_json({"deleted": True, "id": oid}, pretty=ctx.pretty)
 
 
 def _links_payload(action, args):
@@ -217,23 +217,23 @@ def cmd_links_add(args, ctx):
     board = _require_board(ctx)
     oid = _resolve(ctx, args.id)
     body = {"board": board, "links": _links_payload("add", args)}
-    resp = kz_http.api_request("PATCH", f"/cards/{oid}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PATCH", f"/cards/{oid}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_links_remove(args, ctx):
     board = _require_board(ctx)
     oid = _resolve(ctx, args.id)
     body = {"board": board, "links": _links_payload("remove", args)}
-    resp = kz_http.api_request("PATCH", f"/cards/{oid}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PATCH", f"/cards/{oid}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def _fetch_all_cards(board, include_archived=False):
     page = 1
     out = []
     while True:
-        resp = kz_http.api_request("GET", "/cards", params={
+        resp = kanban_zone_http.api_request("GET", "/cards", params={
             "board": board, "page": page, "count": 100,
             "includeArchived": include_archived,
         }) or {}
@@ -245,7 +245,7 @@ def _fetch_all_cards(board, include_archived=False):
 
 
 def cmd_search(args, ctx):
-    boards_resp = kz_http.api_request("GET", "/boards",
+    boards_resp = kanban_zone_http.api_request("GET", "/boards",
                                        params={"includeArchived": False}) or {}
     matches = []
     for b in boards_resp.get("boards", []):
@@ -258,13 +258,13 @@ def cmd_search(args, ctx):
             c2["_board"] = b["publicId"]
             c2["_boardName"] = b.get("name")
             matches.append(c2)
-    kz_output.print_json({"count": len(matches), "cards": matches},
+    kanban_zone_output.print_json({"count": len(matches), "cards": matches},
                           pretty=ctx.pretty)
 
 
 def cmd_wip_check(args, ctx):
     board = _require_board(ctx)
-    board_resp = kz_http.api_request("GET", f"/boards/{board}", params={
+    board_resp = kanban_zone_http.api_request("GET", f"/boards/{board}", params={
         "includeColumns": True, "includeMembers": False,
         "includeLabels": False, "includeCustomFields": False,
     }) or {}
@@ -289,7 +289,7 @@ def cmd_wip_check(args, ctx):
             "columnId": cid, "title": col.get("title"),
             "current": n, "minWIP": min_w, "maxWIP": max_w, "status": status,
         })
-    kz_output.print_json({"board": board, "columns": report},
+    kanban_zone_output.print_json({"board": board, "columns": report},
                           pretty=ctx.pretty)
 
 

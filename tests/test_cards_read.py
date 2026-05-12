@@ -6,8 +6,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import cards as kz_cards
-from kz.cache import Cache
+from kanban_zone import cards as kanban_zone_cards
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -33,7 +33,7 @@ class TestCardsRead(unittest.TestCase):
                 "board": "BOARD1", "page": 1, "count": 100, "includeArchived": False,
             }).returns({"count": 0, "cards": [], "hasMore": False, "totalAvailable": 0})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_list(_ns(
+                kanban_zone_cards.cmd_list(_ns(
                     page=1, count=100, include_archived=False, days_since_last_update=None,
                     label=None, owner=None, column=None, priority=None, blocked=False, query=None,
                 ), _Ctx())
@@ -45,7 +45,7 @@ class TestCardsRead(unittest.TestCase):
                 "includeArchived": False, "daysSinceLastUpdate": 7,
             }).returns({"count": 0, "cards": [], "hasMore": False, "totalAvailable": 0})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_list(_ns(
+                kanban_zone_cards.cmd_list(_ns(
                     page=1, count=100, include_archived=False, days_since_last_update=7,
                     label=None, owner=None, column=None, priority=None, blocked=False, query=None,
                 ), _Ctx())
@@ -63,7 +63,7 @@ class TestCardsRead(unittest.TestCase):
             })
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                kz_cards.cmd_list(_ns(
+                kanban_zone_cards.cmd_list(_ns(
                     page=1, count=100, include_archived=False, days_since_last_update=None,
                     label="Bug", owner=None, column=None, priority=None, blocked=False, query=None,
                 ), _Ctx())
@@ -84,7 +84,7 @@ class TestCardsRead(unittest.TestCase):
             })
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                kz_cards.cmd_list(_ns(
+                kanban_zone_cards.cmd_list(_ns(
                     page=1, count=100, include_archived=False, days_since_last_update=None,
                     label="Bug", owner=None, column=None, priority=None, blocked=False, query=None,
                 ), _Ctx())
@@ -98,13 +98,13 @@ class TestCardsRead(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}").returns({"_id": CARD_OID, "number": 42})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_get(_ns(id="42"), ctx)
+                kanban_zone_cards.cmd_get(_ns(id="42"), ctx)
 
     def test_get_by_object_id_skips_resolution(self):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}").returns({"_id": CARD_OID, "number": 42})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_get(_ns(id=CARD_OID), _Ctx())
+                kanban_zone_cards.cmd_get(_ns(id=CARD_OID), _Ctx())
 
     def test_history_uses_oid_and_passes_from(self):
         ctx = _Ctx()
@@ -113,7 +113,7 @@ class TestCardsRead(unittest.TestCase):
             fake.expect("GET", f"/cards/{CARD_OID}/history",
                         params={"from": "2025-01-01"}).returns([])
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_history(_ns(id="42", from_date="2025-01-01"), ctx)
+                kanban_zone_cards.cmd_history(_ns(id="42", from_date="2025-01-01"), ctx)
 
     def test_metrics_uses_oid(self):
         ctx = _Ctx()
@@ -121,13 +121,13 @@ class TestCardsRead(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}/metrics").returns({"cycle": 1.5})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_metrics(_ns(id="42"), ctx)
+                kanban_zone_cards.cmd_metrics(_ns(id="42"), ctx)
 
     def test_require_board_raises_when_board_missing(self):
         """_require_board raises ValueError when ctx.board is falsy (line 12)."""
         ctx = _Ctx(board=None)
         with self.assertRaises(ValueError):
-            kz_cards.cmd_list(_ns(
+            kanban_zone_cards.cmd_list(_ns(
                 page=1, count=100, include_archived=False, days_since_last_update=None,
                 label=None, owner=None, column=None, priority=None, blocked=False, query=None,
             ), ctx)
@@ -139,7 +139,7 @@ class TestCardsRead(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", f"/cards/{CARD_OID}/history", params=None).returns([])
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_history(_ns(id="42", from_date=None), ctx)
+                kanban_zone_cards.cmd_history(_ns(id="42", from_date=None), ctx)
 
     def test_filter_cards_by_column(self):
         """_filter_cards column match uses columnTitle or column field (line 33-36)."""
@@ -148,7 +148,7 @@ class TestCardsRead(unittest.TestCase):
             {"number": 2, "column": "Done", "title": "b"},
             {"number": 3, "columnTitle": "Backlog", "title": "c"},
         ]
-        result = kz_cards._filter_cards(cards, column="Doing")
+        result = kanban_zone_cards._filter_cards(cards, column="Doing")
         self.assertEqual([c["number"] for c in result], [1])
 
     def test_filter_cards_by_priority(self):
@@ -157,7 +157,7 @@ class TestCardsRead(unittest.TestCase):
             {"number": 1, "priority": 1},
             {"number": 2, "priority": 2},
         ]
-        result = kz_cards._filter_cards(cards, priority="1")
+        result = kanban_zone_cards._filter_cards(cards, priority="1")
         self.assertEqual([c["number"] for c in result], [1])
 
     def test_filter_cards_by_query(self):
@@ -166,7 +166,7 @@ class TestCardsRead(unittest.TestCase):
             {"number": 1, "title": "Deploy service", "description": ""},
             {"number": 2, "title": "Buy groceries", "description": ""},
         ]
-        result = kz_cards._filter_cards(cards, query="deploy")
+        result = kanban_zone_cards._filter_cards(cards, query="deploy")
         self.assertEqual([c["number"] for c in result], [1])
 
     def test_filter_cards_multiple_combined(self):
@@ -177,19 +177,19 @@ class TestCardsRead(unittest.TestCase):
             {"number": 3, "label": "Feature", "owner": "alice", "blocked": True},
             {"number": 4, "label": "Bug", "owner": "alice", "blocked": False},
         ]
-        result = kz_cards._filter_cards(cards, label="Bug", owner="alice", blocked=True)
+        result = kanban_zone_cards._filter_cards(cards, label="Bug", owner="alice", blocked=True)
         self.assertEqual([c["number"] for c in result], [1])
 
     def test_get_field_returns_custom_value(self):
         """_get_field falls back to card['custom'] dict (line 23)."""
         card = {"custom": {"sprint": "42"}}
-        val = kz_cards._get_field(card, "sprint")
+        val = kanban_zone_cards._get_field(card, "sprint")
         self.assertEqual(val, "42")
 
     def test_get_field_returns_none_for_missing(self):
         """_get_field returns None when neither direct nor custom field exists."""
         card = {}
-        val = kz_cards._get_field(card, "nonexistent")
+        val = kanban_zone_cards._get_field(card, "nonexistent")
         self.assertIsNone(val)
 
     def test_list_with_filter_no_api_filters(self):
@@ -206,7 +206,7 @@ class TestCardsRead(unittest.TestCase):
             })
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                kz_cards.cmd_list(_ns(
+                kanban_zone_cards.cmd_list(_ns(
                     page=1, count=100, include_archived=False, days_since_last_update=None,
                     label=None, owner=None, column=None, priority=None, blocked=True, query=None,
                 ), _Ctx())

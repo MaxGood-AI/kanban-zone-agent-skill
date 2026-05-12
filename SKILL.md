@@ -4,7 +4,7 @@ description: Interact with Kanban Zone kanban boards via the Kanban Zone API. Us
 license: MIT
 compatibility: Requires python3 and environment variables KANBAN_ZONE_API_KEY and KANBAN_ZONE_BOARD_ID. Wraps Kanban Zone Public API v1.4.
 metadata:
-  version: "3.0.2"
+  version: "3.1.0"
   openclaw:
     requires:
       env:
@@ -180,7 +180,7 @@ Register and manage webhooks for board event notifications.
 
 ```bash
 python3 scripts/kanban_zone_api.py webhooks list
-python3 scripts/kanban_zone_api.py webhooks create --url https://hooks.example.com/kz --event CARD_MOVED
+python3 scripts/kanban_zone_api.py webhooks create --url https://hooks.example.com/kanban-zone-webhook --event CARD_MOVED
 python3 scripts/kanban_zone_api.py webhooks verify-signature --payload-file /tmp/payload.json --signature <raw-hex-value-from-X-KanbanZone-Signature-header>
 ```
 

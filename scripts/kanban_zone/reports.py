@@ -1,6 +1,6 @@
 """Reports group: 8 report types, all GET /boards/{publicId}/reports/{type}."""
-from kz import http as kz_http
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import output as kanban_zone_output
 
 
 def _run_report(report_type, args, ctx):
@@ -11,11 +11,11 @@ def _run_report(report_type, args, ctx):
         params["from"] = args.from_date
     if args.to_date:
         params["to"] = args.to_date
-    resp = kz_http.api_request(
+    resp = kanban_zone_http.api_request(
         "GET", f"/boards/{ctx.board}/reports/{report_type}",
         params=params or None,
     )
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_throughput(args, ctx): _run_report("throughput", args, ctx)

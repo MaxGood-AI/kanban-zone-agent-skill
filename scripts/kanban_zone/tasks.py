@@ -1,6 +1,6 @@
 """Tasks group: create, update, delete, move."""
-from kz import http as kz_http
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import output as kanban_zone_output
 
 
 def cmd_create(args, ctx):
@@ -9,8 +9,8 @@ def cmd_create(args, ctx):
         body["position"] = args.position
     if args.due_at:
         body["dueAt"] = args.due_at
-    resp = kz_http.api_request("POST", "/tasks", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/tasks", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_update(args, ctx):
@@ -25,13 +25,13 @@ def cmd_update(args, ctx):
         body["dueAt"] = args.due_at
     if not body:
         raise ValueError("Provide one of --completed/--description/--position/--due-at")
-    resp = kz_http.api_request("PATCH", f"/tasks/{args.id}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PATCH", f"/tasks/{args.id}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_delete(args, ctx):
-    kz_http.api_request("DELETE", f"/tasks/{args.id}")
-    kz_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
+    kanban_zone_http.api_request("DELETE", f"/tasks/{args.id}")
+    kanban_zone_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
 
 
 def cmd_move(args, ctx):
@@ -40,8 +40,8 @@ def cmd_move(args, ctx):
         "checklistTo": args.checklist_to,
         "position": args.position,
     }
-    resp = kz_http.api_request("POST", f"/tasks/{args.id}/move", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", f"/tasks/{args.id}/move", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):

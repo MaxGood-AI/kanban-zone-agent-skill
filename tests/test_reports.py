@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import reports as kz_reports
+from kanban_zone import reports as kanban_zone_reports
 from tests.fakes import FakeApi
 
 
@@ -38,7 +38,7 @@ class TestReports(unittest.TestCase):
                     fake.expect("GET", f"/boards/BOARD1/reports/{slug}",
                                 params={"from": "2026-01-01", "to": "2026-04-01"}
                                 ).returns({"data": []})
-                    handler = getattr(kz_reports, fn_name)
+                    handler = getattr(kanban_zone_reports, fn_name)
                     with patch("sys.stdout", io.StringIO()):
                         handler(_ns(from_date="2026-01-01", to_date="2026-04-01"), _Ctx())
 
@@ -47,7 +47,7 @@ class TestReports(unittest.TestCase):
             fake.expect("GET", "/boards/BOARD1/reports/throughput", params=None
                         ).returns({"data": []})
             with patch("sys.stdout", io.StringIO()):
-                kz_reports.cmd_throughput(_ns(from_date=None, to_date=None), _Ctx())
+                kanban_zone_reports.cmd_throughput(_ns(from_date=None, to_date=None), _Ctx())
 
     def test_from_date_only(self):
         """_run_report with only from_date set (line 10-11, 14 branch)."""
@@ -55,7 +55,7 @@ class TestReports(unittest.TestCase):
             fake.expect("GET", "/boards/BOARD1/reports/throughput",
                         params={"from": "2026-01-01"}).returns({"data": []})
             with patch("sys.stdout", io.StringIO()):
-                kz_reports.cmd_throughput(_ns(from_date="2026-01-01", to_date=None), _Ctx())
+                kanban_zone_reports.cmd_throughput(_ns(from_date="2026-01-01", to_date=None), _Ctx())
 
     def test_to_date_only(self):
         """_run_report with only to_date set (line 10, 12-13 branch)."""
@@ -63,25 +63,25 @@ class TestReports(unittest.TestCase):
             fake.expect("GET", "/boards/BOARD1/reports/throughput",
                         params={"to": "2026-04-01"}).returns({"data": []})
             with patch("sys.stdout", io.StringIO()):
-                kz_reports.cmd_throughput(_ns(from_date=None, to_date="2026-04-01"), _Ctx())
+                kanban_zone_reports.cmd_throughput(_ns(from_date=None, to_date="2026-04-01"), _Ctx())
 
     def test_no_board_raises(self):
         """_run_report raises ValueError when board is missing (line 8)."""
         ctx = _Ctx()
         ctx.board = None
         with self.assertRaises(ValueError):
-            kz_reports.cmd_throughput(_ns(from_date=None, to_date=None), ctx)
+            kanban_zone_reports.cmd_throughput(_ns(from_date=None, to_date=None), ctx)
 
     def test_all_report_types_no_dates(self):
         """Exercise every _cmd_* one-liner via subTest for the no-dates path."""
         handlers = [
-            kz_reports.cmd_arrival_rate,
-            kz_reports.cmd_cycle_time,
-            kz_reports.cmd_lead_time,
-            kz_reports.cmd_flow,
-            kz_reports.cmd_flow_efficiency,
-            kz_reports.cmd_allocation,
-            kz_reports.cmd_abandoned_effort,
+            kanban_zone_reports.cmd_arrival_rate,
+            kanban_zone_reports.cmd_cycle_time,
+            kanban_zone_reports.cmd_lead_time,
+            kanban_zone_reports.cmd_flow,
+            kanban_zone_reports.cmd_flow_efficiency,
+            kanban_zone_reports.cmd_allocation,
+            kanban_zone_reports.cmd_abandoned_effort,
         ]
         slugs = [
             "arrival-rate", "cycle-time", "lead-time",

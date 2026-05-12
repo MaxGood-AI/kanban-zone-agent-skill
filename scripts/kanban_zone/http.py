@@ -16,7 +16,7 @@ BASE_URL = "https://integrations.kanbanzone.io/v1"
 _cached_auth_header = None
 
 
-class KZApiError(Exception):
+class KanbanZoneApiError(Exception):
     def __init__(self, status, body, request_line):
         super().__init__(f"{request_line} -> HTTP {status}: {body[:200]}")
         self.status = status
@@ -24,7 +24,7 @@ class KZApiError(Exception):
         self.request_line = request_line
 
 
-class KZAuthError(Exception):
+class KanbanZoneAuthError(Exception):
     pass
 
 
@@ -35,7 +35,7 @@ def _auth_header():
     raw = os.environ.get("KANBAN_ZONE_API_KEY") or ""
     raw = raw.strip()
     if not raw:
-        raise KZAuthError(
+        raise KanbanZoneAuthError(
             "KANBAN_ZONE_API_KEY is not set (and --api-token was not passed)"
         )
     encoded = base64.b64encode(raw.encode("utf-8")).decode("ascii")
@@ -54,7 +54,7 @@ def set_api_token(raw_token):
 def api_request(method, path, params=None, body=None):
     """Send an HTTP request to the Kanban Zone API and return parsed JSON.
 
-    Returns None on 204. Raises KZApiError on non-2xx, KZAuthError on missing key.
+    Returns None on 204. Raises KanbanZoneApiError on non-2xx, KanbanZoneAuthError on missing key.
     """
     if not path.startswith("/"):
         path = "/" + path
@@ -82,15 +82,15 @@ def api_request(method, path, params=None, body=None):
             raw = resp.read()
     except urllib.error.HTTPError as exc:
         raw = exc.read() or b""
-        raise KZApiError(exc.code, raw.decode("utf-8", errors="replace"), request_line)
+        raise KanbanZoneApiError(exc.code, raw.decode("utf-8", errors="replace"), request_line)
     except urllib.error.URLError as exc:
-        raise KZApiError(0, str(exc.reason), request_line)
+        raise KanbanZoneApiError(0, str(exc.reason), request_line)
 
     if status == 204 or not raw:
         return None
     try:
         return json.loads(raw.decode("utf-8"))
     except json.JSONDecodeError as exc:
-        raise KZApiError(
+        raise KanbanZoneApiError(
             status, f"non-JSON response: {raw[:200]!r}", request_line
         ) from exc

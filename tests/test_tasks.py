@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import tasks as kz_tasks
+from kanban_zone import tasks as kanban_zone_tasks
 from tests.fakes import FakeApi
 
 
@@ -30,7 +30,7 @@ class TestTasks(unittest.TestCase):
                 "checklist": CHK_ID, "description": "Pick up groceries",
             }).returns({"_id": TASK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_create(_ns(
+                kanban_zone_tasks.cmd_create(_ns(
                     checklist=CHK_ID, description="Pick up groceries",
                     position=None, due_at=None,
                 ), _Ctx())
@@ -42,7 +42,7 @@ class TestTasks(unittest.TestCase):
                 "position": 0, "dueAt": "2026-06-01T17:00:00.000Z",
             }).returns({"_id": TASK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_create(_ns(
+                kanban_zone_tasks.cmd_create(_ns(
                     checklist=CHK_ID, description="X",
                     position=0, due_at="2026-06-01T17:00:00.000Z",
                 ), _Ctx())
@@ -53,7 +53,7 @@ class TestTasks(unittest.TestCase):
                 "completed": True,
             }).returns({"_id": TASK_ID, "completed": True})
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_update(_ns(
+                kanban_zone_tasks.cmd_update(_ns(
                     id=TASK_ID, completed=True, description=None,
                     position=None, due_at=None,
                 ), _Ctx())
@@ -62,7 +62,7 @@ class TestTasks(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("DELETE", f"/tasks/{TASK_ID}").returns(None)
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_delete(_ns(id=TASK_ID), _Ctx())
+                kanban_zone_tasks.cmd_delete(_ns(id=TASK_ID), _Ctx())
 
     def test_move_between_checklists(self):
         with FakeApi() as fake:
@@ -72,7 +72,7 @@ class TestTasks(unittest.TestCase):
                 "position": 0,
             }).returns({"_id": TASK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_move(_ns(
+                kanban_zone_tasks.cmd_move(_ns(
                     id=TASK_ID, checklist_from=CHK_ID,
                     checklist_to=DEST_CHK, position=0,
                 ), _Ctx())
@@ -87,7 +87,7 @@ class TestTasks(unittest.TestCase):
                 "dueAt": "2026-12-31",
             }).returns({"_id": TASK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_tasks.cmd_update(_ns(
+                kanban_zone_tasks.cmd_update(_ns(
                     id=TASK_ID, completed=False, description="Updated text",
                     position=2, due_at="2026-12-31",
                 ), _Ctx())
@@ -95,7 +95,7 @@ class TestTasks(unittest.TestCase):
     def test_update_no_fields_raises(self):
         """cmd_update with no fields set raises ValueError (line 27 guard)."""
         with self.assertRaises(ValueError):
-            kz_tasks.cmd_update(_ns(
+            kanban_zone_tasks.cmd_update(_ns(
                 id=TASK_ID, completed=None, description=None,
                 position=None, due_at=None,
             ), _Ctx())

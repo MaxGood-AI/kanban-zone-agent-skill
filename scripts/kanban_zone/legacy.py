@@ -5,8 +5,8 @@ grouped handler so existing scripts keep working without code changes.
 """
 import argparse
 
-from kz import boards as kz_boards
-from kz import cards as kz_cards
+from kanban_zone import boards as kanban_zone_boards
+from kanban_zone import cards as kanban_zone_cards
 
 # Names registered by this module — used to rebuild the metavar after each
 # _add() call so suppressed aliases stay out of the usage line.
@@ -35,7 +35,7 @@ def _add(sub, name, callback, configure=lambda p: None):
 def _wrap_boards_list(args, ctx):
     args.include_archived = getattr(args, "include_archived", False)
     args.include_columns = getattr(args, "include_columns", False)
-    return kz_boards.cmd_list(args, ctx)
+    return kanban_zone_boards.cmd_list(args, ctx)
 
 
 def _wrap_boards_get(args, ctx):
@@ -43,7 +43,7 @@ def _wrap_boards_get(args, ctx):
     args.include_members = False
     args.include_labels = False
     args.include_custom_fields = False
-    return kz_boards.cmd_get(args, ctx)
+    return kanban_zone_boards.cmd_get(args, ctx)
 
 
 def _wrap_cards_list(args, ctx):
@@ -54,49 +54,49 @@ def _wrap_cards_list(args, ctx):
     for k in ("label", "owner", "column", "priority", "query"):
         setattr(args, k, getattr(args, k, None))
     args.blocked = getattr(args, "blocked", False)
-    return kz_cards.cmd_list(args, ctx)
+    return kanban_zone_cards.cmd_list(args, ctx)
 
 
 def _wrap_cards_get(args, ctx):
     args.id = args.number  # v2 used --number
-    return kz_cards.cmd_get(args, ctx)
+    return kanban_zone_cards.cmd_get(args, ctx)
 
 
 def _wrap_cards_create(args, ctx):
-    return kz_cards.cmd_create(args, ctx)
+    return kanban_zone_cards.cmd_create(args, ctx)
 
 
 def _wrap_cards_create_bulk(args, ctx):
-    return kz_cards.cmd_create_bulk(args, ctx)
+    return kanban_zone_cards.cmd_create_bulk(args, ctx)
 
 
 def _wrap_cards_update(args, ctx):
     args.id = str(args.id)  # accepts number-as-int from v2
-    return kz_cards.cmd_update(args, ctx)
+    return kanban_zone_cards.cmd_update(args, ctx)
 
 
 def _wrap_cards_move(args, ctx):
     args.id = str(args.id)
     args.add_to_top = getattr(args, "add_to_top", False)
-    return kz_cards.cmd_move(args, ctx)
+    return kanban_zone_cards.cmd_move(args, ctx)
 
 
 def _wrap_cards_links_add(args, ctx):
     args.id = str(args.id)
-    return kz_cards.cmd_links_add(args, ctx)
+    return kanban_zone_cards.cmd_links_add(args, ctx)
 
 
 def _wrap_cards_links_remove(args, ctx):
     args.id = str(args.id)
-    return kz_cards.cmd_links_remove(args, ctx)
+    return kanban_zone_cards.cmd_links_remove(args, ctx)
 
 
 def _wrap_cards_search(args, ctx):
-    return kz_cards.cmd_search(args, ctx)
+    return kanban_zone_cards.cmd_search(args, ctx)
 
 
 def _wrap_cards_wip_check(args, ctx):
-    return kz_cards.cmd_wip_check(args, ctx)
+    return kanban_zone_cards.cmd_wip_check(args, ctx)
 
 
 def register(subparsers):

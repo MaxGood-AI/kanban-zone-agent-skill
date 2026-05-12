@@ -6,8 +6,8 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import cards as kz_cards
-from kz.cache import Cache
+from kanban_zone import cards as kanban_zone_cards
+from kanban_zone.cache import Cache
 from tests.fakes import FakeApi
 
 
@@ -36,7 +36,7 @@ class TestCardLinks(unittest.TestCase):
                 "links": {"add": [{"card": 99, "type": "related"}]},
             }).returns({})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_links_add(_ns(
+                kanban_zone_cards.cmd_links_add(_ns(
                     id="42", card=99, url=None, title=None, type="related",
                 ), ctx)
 
@@ -50,7 +50,7 @@ class TestCardLinks(unittest.TestCase):
                                     "type": "external"}]},
             }).returns({})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_links_add(_ns(
+                kanban_zone_cards.cmd_links_add(_ns(
                     id="42", card=None, url="https://x", title="Spec", type="external",
                 ), ctx)
 
@@ -63,7 +63,7 @@ class TestCardLinks(unittest.TestCase):
                 "links": {"remove": [{"card": 99}]},
             }).returns({})
             with patch("sys.stdout", io.StringIO()):
-                kz_cards.cmd_links_remove(_ns(
+                kanban_zone_cards.cmd_links_remove(_ns(
                     id="42", card=99, url=None,
                 ), ctx)
 
@@ -85,7 +85,7 @@ class TestCardsSearch(unittest.TestCase):
                         "hasMore": False})
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                kz_cards.cmd_search(_ns(query="deploy", label=None, owner=None), _Ctx())
+                kanban_zone_cards.cmd_search(_ns(query="deploy", label=None, owner=None), _Ctx())
             self.assertIn('"deploy soon"', buf.getvalue())
             self.assertNotIn('"buy lunch"', buf.getvalue())
 
@@ -117,7 +117,7 @@ class TestWipCheck(unittest.TestCase):
             })
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                kz_cards.cmd_wip_check(_ns(), _Ctx())
+                kanban_zone_cards.cmd_wip_check(_ns(), _Ctx())
             self.assertIn('"violation"', buf.getvalue())
             self.assertIn('"Doing"', buf.getvalue())
 

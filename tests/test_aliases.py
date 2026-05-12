@@ -60,7 +60,7 @@ class TestReportsAliases(unittest.TestCase):
                 self.assertIn("--to", out)
 
 
-class TestKzIdErrorMessage(unittest.TestCase):
+class TestKanbanZoneIdErrorMessage(unittest.TestCase):
     """When a card number can't be resolved, the error message must guide the user."""
 
     def test_message_mentions_remediation_steps(self):
@@ -68,8 +68,8 @@ class TestKzIdErrorMessage(unittest.TestCase):
         # when paging exhausts without finding the card. We do not call the API;
         # we monkey-patch api_request to return an empty page.
         sys.path.insert(0, "scripts")
-        from kz import ids as kz_ids
-        from kz.cache import Cache
+        from kanban_zone import ids as kanban_zone_ids
+        from kanban_zone.cache import Cache
         from tests.fakes import FakeApi
 
         with tempfile.TemporaryDirectory() as td:
@@ -79,9 +79,9 @@ class TestKzIdErrorMessage(unittest.TestCase):
                     "board": "BOARDX", "page": 1, "count": 100, "includeArchived": False,
                 }).returns({"cards": [], "hasMore": False, "totalAvailable": 5})
                 try:
-                    kz_ids.resolve_card_object_id("999", "BOARDX", cache)
-                    self.fail("expected KZIdError")
-                except kz_ids.KZIdError as exc:
+                    kanban_zone_ids.resolve_card_object_id("999", "BOARDX", cache)
+                    self.fail("expected KanbanZoneIdError")
+                except kanban_zone_ids.KanbanZoneIdError as exc:
                     msg = str(exc)
                     self.assertIn("999", msg)
                     self.assertIn("BOARDX", msg)

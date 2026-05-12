@@ -127,7 +127,7 @@ python3 scripts/kanban_zone_api.py webhooks create \
   --url "https://hooks.yourapp.com/kanban" \
   --event CARD_CREATED
 
-# After the first delivery arrives, verify its signature (key from KZ_WEBHOOK_KEY env or --webhook-key)
+# After the first delivery arrives, verify its signature (key from KANBAN_ZONE_WEBHOOK_KEY env or --webhook-key)
 python3 scripts/kanban_zone_api.py webhooks verify-signature \
   --payload-file /tmp/webhook-body.json \
   --signature "<raw-hex-from-X-KanbanZone-Signature-header>" \

@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import org as kz_org
+from kanban_zone import org as kanban_zone_org
 from tests.fakes import FakeApi
 
 
@@ -20,7 +20,7 @@ class TestOrg(unittest.TestCase):
         buf = io.StringIO()
         with FakeApi() as fake, patch("sys.stdout", buf):
             fake.expect("GET", "/me").returns({"organization": "Acme"})
-            kz_org.cmd_me(args=None, ctx=_StubCtx())
+            kanban_zone_org.cmd_me(args=None, ctx=_StubCtx())
         self.assertIn('"organization": "Acme"', buf.getvalue())
 
     def test_context_sends_include_flags(self):
@@ -36,7 +36,7 @@ class TestOrg(unittest.TestCase):
                 "includeColumns": False, "includeLabels": False,
                 "includeCustomFields": True,
             }).returns({"name": "Acme"})
-            kz_org.cmd_context(args=ns, ctx=_StubCtx())
+            kanban_zone_org.cmd_context(args=ns, ctx=_StubCtx())
         self.assertIn('"name": "Acme"', buf.getvalue())
 
 

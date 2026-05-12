@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, "scripts")
-from kz import webhooks as kz_webhooks
+from kanban_zone import webhooks as kanban_zone_webhooks
 from tests.fakes import FakeApi
 
 
@@ -31,13 +31,13 @@ class TestWebhooksCRUD(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("GET", "/webhooks").returns([{"_id": HOOK_ID}])
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_list(_ns(), _Ctx())
+                kanban_zone_webhooks.cmd_list(_ns(), _Ctx())
 
     def test_get(self):
         with FakeApi() as fake:
             fake.expect("GET", f"/webhooks/{HOOK_ID}").returns({"_id": HOOK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_get(_ns(id=HOOK_ID), _Ctx())
+                kanban_zone_webhooks.cmd_get(_ns(id=HOOK_ID), _Ctx())
 
     def test_create(self):
         with FakeApi() as fake:
@@ -46,7 +46,7 @@ class TestWebhooksCRUD(unittest.TestCase):
                 "url": "https://h.example/webhook",
             }).returns({"_id": HOOK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_create(_ns(
+                kanban_zone_webhooks.cmd_create(_ns(
                     event="CARD_CREATED", url="https://h.example/webhook",
                 ), _Ctx())
 
@@ -56,7 +56,7 @@ class TestWebhooksCRUD(unittest.TestCase):
                 "url": "https://h.example/v2",
             }).returns({"_id": HOOK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_update(_ns(
+                kanban_zone_webhooks.cmd_update(_ns(
                     id=HOOK_ID, url="https://h.example/v2", event=None,
                 ), _Ctx())
 
@@ -64,13 +64,13 @@ class TestWebhooksCRUD(unittest.TestCase):
         with FakeApi() as fake:
             fake.expect("DELETE", f"/webhooks/{HOOK_ID}").returns(None)
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_delete(_ns(id=HOOK_ID), _Ctx())
+                kanban_zone_webhooks.cmd_delete(_ns(id=HOOK_ID), _Ctx())
 
     def test_test(self):
         with FakeApi() as fake:
             fake.expect("POST", f"/webhooks/{HOOK_ID}/test").returns({"sent": True})
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_test(_ns(id=HOOK_ID), _Ctx())
+                kanban_zone_webhooks.cmd_test(_ns(id=HOOK_ID), _Ctx())
 
 
 class TestVerifySignature(unittest.TestCase):
@@ -89,7 +89,7 @@ class TestVerifySignature(unittest.TestCase):
     def test_match_returns_exit_zero(self):
         buf = io.StringIO()
         with patch("sys.stdout", buf):
-            rc = kz_webhooks.cmd_verify_signature(_ns(
+            rc = kanban_zone_webhooks.cmd_verify_signature(_ns(
                 webhook_key=self.key, payload_file=self.payload_path,
                 signature=self.good,
             ), _Ctx())
@@ -101,7 +101,7 @@ class TestVerifySignature(unittest.TestCase):
     def test_mismatch_exits_one(self):
         buf = io.StringIO()
         with patch("sys.stdout", buf):
-            rc = kz_webhooks.cmd_verify_signature(_ns(
+            rc = kanban_zone_webhooks.cmd_verify_signature(_ns(
                 webhook_key=self.key, payload_file=self.payload_path,
                 signature="0" * 40,
             ), _Ctx())
@@ -110,39 +110,39 @@ class TestVerifySignature(unittest.TestCase):
         self.assertEqual(rc, 1)
 
     def test_key_from_env(self):
-        os.environ["KZ_WEBHOOK_KEY"] = self.key
+        os.environ["KANBAN_ZONE_WEBHOOK_KEY"] = self.key
         try:
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                rc = kz_webhooks.cmd_verify_signature(_ns(
+                rc = kanban_zone_webhooks.cmd_verify_signature(_ns(
                     webhook_key=None, payload_file=self.payload_path,
                     signature=self.good,
                 ), _Ctx())
             self.assertEqual(rc, 0)
         finally:
-            os.environ.pop("KZ_WEBHOOK_KEY")
+            os.environ.pop("KANBAN_ZONE_WEBHOOK_KEY")
 
     def test_missing_key_raises(self):
         with self.assertRaises(ValueError):
-            kz_webhooks.cmd_verify_signature(_ns(
+            kanban_zone_webhooks.cmd_verify_signature(_ns(
                 webhook_key=None, payload_file=self.payload_path,
                 signature=self.good,
             ), _Ctx())
 
     def test_webhook_key_arg_takes_precedence_over_env(self):
-        """--webhook-key overrides KZ_WEBHOOK_KEY env var (line 51 branch)."""
-        os.environ["KZ_WEBHOOK_KEY"] = "wrong-key"
+        """--webhook-key overrides KANBAN_ZONE_WEBHOOK_KEY env var (line 51 branch)."""
+        os.environ["KANBAN_ZONE_WEBHOOK_KEY"] = "wrong-key"
         try:
             buf = io.StringIO()
             with patch("sys.stdout", buf):
-                rc = kz_webhooks.cmd_verify_signature(_ns(
+                rc = kanban_zone_webhooks.cmd_verify_signature(_ns(
                     webhook_key=self.key,  # explicit arg wins
                     payload_file=self.payload_path,
                     signature=self.good,
                 ), _Ctx())
             self.assertEqual(rc, 0)
         finally:
-            os.environ.pop("KZ_WEBHOOK_KEY")
+            os.environ.pop("KANBAN_ZONE_WEBHOOK_KEY")
 
 
 class TestWebhooksMissingBoard(unittest.TestCase):
@@ -151,14 +151,14 @@ class TestWebhooksMissingBoard(unittest.TestCase):
         ctx = _Ctx()
         ctx.board = None
         with self.assertRaises(ValueError):
-            kz_webhooks.cmd_create(_ns(
+            kanban_zone_webhooks.cmd_create(_ns(
                 event="CARD_CREATED", url="https://h.example/wh",
             ), ctx)
 
     def test_update_no_fields_raises(self):
         """cmd_update raises ValueError when neither --url nor --event is given (lines 30-35)."""
         with self.assertRaises(ValueError):
-            kz_webhooks.cmd_update(_ns(id=HOOK_ID, url=None, event=None), _Ctx())
+            kanban_zone_webhooks.cmd_update(_ns(id=HOOK_ID, url=None, event=None), _Ctx())
 
     def test_update_with_event_only(self):
         """cmd_update with only --event set (line 32 branch)."""
@@ -167,7 +167,7 @@ class TestWebhooksMissingBoard(unittest.TestCase):
                 "event": "CARD_MOVED",
             }).returns({"_id": HOOK_ID})
             with patch("sys.stdout", io.StringIO()):
-                kz_webhooks.cmd_update(_ns(
+                kanban_zone_webhooks.cmd_update(_ns(
                     id=HOOK_ID, url=None, event="CARD_MOVED",
                 ), _Ctx())
 

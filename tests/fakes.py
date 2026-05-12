@@ -1,10 +1,10 @@
-"""Test fakes for the kz package — primarily the FakeApi context manager."""
+"""Test fakes for the kanban_zone package — primarily the FakeApi context manager."""
 import sys
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
 
 sys.path.insert(0, "scripts")
-from kz import http as kz_http
+from kanban_zone import http as kanban_zone_http
 
 
 @dataclass
@@ -34,7 +34,7 @@ class _ExpectationBuilder:
 
 
 class FakeApi:
-    """Context manager that monkey-patches kz.http.api_request with a queue."""
+    """Context manager that monkey-patches kanban_zone.http.api_request with a queue."""
 
     def __init__(self):
         self.expectations: List[_Expectation] = []
@@ -42,12 +42,12 @@ class FakeApi:
         self._original = None
 
     def __enter__(self):
-        self._original = kz_http.api_request
-        kz_http.api_request = self._intercept
+        self._original = kanban_zone_http.api_request
+        kanban_zone_http.api_request = self._intercept
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        kz_http.api_request = self._original
+        kanban_zone_http.api_request = self._original
 
     def expect(self, method, path, params=None, body=None):
         exp = _Expectation(method=method, path=path, params=params, body=body)

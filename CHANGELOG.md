@@ -21,7 +21,7 @@ All notable changes to the Kanban Zone skill. Versioning follows SemVer.
 
 ### Changed
 - Restructured `scripts/kanban_zone_api.py` from monolith to entry script
-  + `scripts/kz/` package with one module per resource.
+  + `scripts/kanban_zone/` package with one module per resource.
 - Wire calls migrated silently to v1.4 canonical paths
   (`PATCH /cards/{id}`, `POST /checklists`, `POST /comments`,
   `POST /tokens`, `GET /boards/{publicId}`). Deprecated v1.3 paths no

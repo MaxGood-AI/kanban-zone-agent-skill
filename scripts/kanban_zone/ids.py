@@ -5,13 +5,13 @@ Resolves either direction through the agent cache, falling back to API calls.
 """
 import re
 
-from kz import http as kz_http
+from kanban_zone import http as kanban_zone_http
 
 
 def _unwrap_card(card):
     """Return a flat card dict, handling the v1.4 {"_id": ..., "CardItem": {...}} envelope.
 
-    Duplicated from kz.cards to avoid a circular import (cards imports ids).
+    Duplicated from kanban_zone.cards to avoid a circular import (cards imports ids).
     """
     if not isinstance(card, dict):
         return card
@@ -28,7 +28,7 @@ _NUMBER_RE = re.compile(r"^\d+$")
 _OBJECT_ID_RE = re.compile(r"^[0-9a-fA-F]{24}$")
 
 
-class KZIdError(Exception):
+class KanbanZoneIdError(Exception):
     pass
 
 
@@ -39,7 +39,7 @@ def detect_id_kind(value):
         return "number"
     if _OBJECT_ID_RE.match(value):
         return "object_id"
-    raise KZIdError(
+    raise KanbanZoneIdError(
         f"{value!r} is neither a card number (digits) nor a 24-hex ObjectId"
     )
 
@@ -57,7 +57,7 @@ def resolve_card_object_id(value, board, cache):
     cards_scanned = 0
     total_available = None
     while True:
-        resp = kz_http.api_request(
+        resp = kanban_zone_http.api_request(
             "GET", "/cards",
             params={"board": board, "page": page, "count": 100, "includeArchived": False},
         ) or {}
@@ -74,7 +74,7 @@ def resolve_card_object_id(value, board, cache):
         if not resp.get("hasMore"):
             break
         page += 1
-    raise KZIdError(
+    raise KanbanZoneIdError(
         f"Card number {number} not found on board {board} "
         f"(scanned {cards_scanned} of {total_available} non-archived cards). "
         "The card may have been deleted, be on a different board, or be archived. "
@@ -92,9 +92,9 @@ def resolve_card_number(value, board, cache):
     cached = cache.get_card_number(board, value)
     if cached is not None:
         return cached
-    resp = kz_http.api_request("GET", f"/cards/{value}")
+    resp = kanban_zone_http.api_request("GET", f"/cards/{value}")
     number = _unwrap_card(resp or {}).get("number")
     if number is None:
-        raise KZIdError(f"Card {value} returned no number field")
+        raise KanbanZoneIdError(f"Card {value} returned no number field")
     cache.set_card_mapping(board, number, value)
     return int(number)

@@ -1,13 +1,13 @@
 """Checklists group: create, update, delete, list."""
-from kz import http as kz_http
-from kz import ids as kz_ids
-from kz import output as kz_output
+from kanban_zone import http as kanban_zone_http
+from kanban_zone import ids as kanban_zone_ids
+from kanban_zone import output as kanban_zone_output
 
 
 def _resolve_card(ctx, value):
     if not ctx.board:
         raise ValueError("--board or KANBAN_ZONE_BOARD_ID is required")
-    return kz_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
+    return kanban_zone_ids.resolve_card_object_id(value, ctx.board, ctx.cache)
 
 
 def cmd_create(args, ctx):
@@ -15,8 +15,8 @@ def cmd_create(args, ctx):
     body = {"card": oid, "title": args.title}
     if args.task:
         body["tasks"] = [{"description": t} for t in args.task]
-    resp = kz_http.api_request("POST", "/checklists", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("POST", "/checklists", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_update(args, ctx):
@@ -27,19 +27,19 @@ def cmd_update(args, ctx):
         body["position"] = args.position
     if not body:
         raise ValueError("Provide at least one of --title or --position")
-    resp = kz_http.api_request("PATCH", f"/checklists/{args.id}", body=body)
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("PATCH", f"/checklists/{args.id}", body=body)
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def cmd_delete(args, ctx):
-    kz_http.api_request("DELETE", f"/checklists/{args.id}")
-    kz_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
+    kanban_zone_http.api_request("DELETE", f"/checklists/{args.id}")
+    kanban_zone_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
 
 
 def cmd_list(args, ctx):
     oid = _resolve_card(ctx, args.card)
-    resp = kz_http.api_request("GET", f"/cards/{oid}/checklists")
-    kz_output.print_json(resp, pretty=ctx.pretty)
+    resp = kanban_zone_http.api_request("GET", f"/cards/{oid}/checklists")
+    kanban_zone_output.print_json(resp, pretty=ctx.pretty)
 
 
 def register(subparsers):
