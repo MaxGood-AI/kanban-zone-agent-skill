@@ -4,6 +4,37 @@
 
 Manage your [Kanban Zone](https://kanbanzone.com) boards — cards, columns, comments, checklists, tasks, webhooks, and flow reports — directly from any Claude Code-compatible workspace. Built in official partnership with Kanban Zone, this skill wraps the **Kanban Zone Public API v1.4** using nothing but the Python 3 standard library: no virtual environment, no third-party packages, and no external runtime dependencies of any kind. Drop it into a repo, point it at your API key, and your AI assistant gains full board access in seconds.
 
+## ⚠️ Deleting records is currently broken
+
+**Kanban Zone's DELETE API is non-functional, and this skill cannot work
+around it.** Every delete command is affected:
+
+- `cards delete`
+- `checklists delete`
+- `tasks delete`
+- `webhooks delete`
+- `tokens revoke`
+
+**What happens:** Kanban Zone's API edge (AWS CloudFront / API Gateway) strips
+the request body from every DELETE request. Kanban Zone's DELETE routes then
+reject the now-empty body with a "Body Parser failed" error — returned,
+misleadingly, as `HTTP 200`. The record is never deleted. No request shape
+avoids this; it is a server-side defect, confirmed live on 2026-05-16 and
+reported to Kanban Zone.
+
+**What the skill does:** rather than silently report a fake success, every
+delete command **fails loudly** — it exits non-zero with a clear, actionable
+error (`KanbanZoneDeleteUnsupportedError`) stating that the record was *not*
+deleted, that this is a known Kanban Zone bug, that retrying will not help,
+and that the record must be removed another way.
+
+**Workaround:** delete cards, checklists, tasks, webhooks, and tokens from
+the **Kanban Zone web UI**. Programmatic deletion is not possible until
+Kanban Zone ships a server-side fix. For cards, `cards move` (e.g. to an
+Archive column) still works and can get an unwanted card out of the way.
+
+This section will be removed once Kanban Zone fixes the API.
+
 ## Install
 
 ```bash

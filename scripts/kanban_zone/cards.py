@@ -193,7 +193,7 @@ def cmd_move(args, ctx):
 def cmd_delete(args, ctx):
     board = _require_board(ctx)
     oid = _resolve(ctx, args.id)
-    kanban_zone_http.api_request("DELETE", f"/cards/{oid}", params={"board": board})
+    kanban_zone_http.delete_resource("card", f"/cards/{oid}", params={"board": board})
     ctx.cache.invalidate_card(board, oid)
     kanban_zone_output.print_json({"deleted": True, "id": oid}, pretty=ctx.pretty)
 

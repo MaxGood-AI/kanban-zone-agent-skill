@@ -18,7 +18,7 @@ def cmd_assign(args, ctx):
 
 
 def cmd_revoke(args, ctx):
-    kanban_zone_http.api_request("DELETE", f"/tokens/{args.id}")
+    kanban_zone_http.delete_resource("token", f"/tokens/{args.id}")
     kanban_zone_output.print_json({"revoked": True, "id": args.id}, pretty=ctx.pretty)
 
 

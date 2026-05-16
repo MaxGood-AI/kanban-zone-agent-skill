@@ -73,6 +73,28 @@ tests/
 - **org.py**: Organization context — `me` (current user) and `context` (org info).
 - **legacy.py**: v2 backward-compatibility wrappers. Accepts v2 CLI syntax (e.g., integer card IDs) and wraps v3 handlers.
 
+## Known API Limitation — Delete Operations
+
+Kanban Zone's DELETE endpoints are non-functional server-side. Every DELETE
+(`/cards`, `/checklists`, `/tasks`, `/webhooks`, `/tokens`) is answered with
+`HTTP 200` + `{"message": "Body Parser failed ..."}` and never deletes the
+record — Kanban Zone's API edge (AWS CloudFront / API Gateway) strips the
+request body, and the DELETE routes then reject the now-empty body. No
+request shape works around it. (Confirmed live 2026-05-16; reported to
+Kanban Zone.)
+
+Implications for contributors:
+
+- All five delete commands route through `http.delete_resource()`, which
+  raises `KanbanZoneDeleteUnsupportedError` (a `KanbanZoneApiError` subclass)
+  carrying a message written for both humans and AI agents. Do **not** "fix"
+  a failing delete by retrying, changing the request body, or suppressing the
+  error — the defect is in Kanban Zone's API, not this skill.
+- Regression coverage lives in `tests/test_delete_endpoint.py`.
+- When Kanban Zone ships a server-side fix, restore a plain success path in
+  the delete commands and remove the warning sections from `README.md` and
+  `SKILL.md`.
+
 ## Adding a New Endpoint: Step-by-Step Template
 
 When adding a new endpoint or subcommand, follow this repeatable loop:
@@ -265,7 +287,7 @@ Follow the platform CLAUDE.md commit conventions:
   - `## Solution`: What did you implement? What files changed?
   - `## Verified`: How did you test it? List the exact commands run and their output.
 - **Trivial changes** (typos, comment fixes): subject line only, no body needed.
-- **KanbanZone link** (if applicable): Append the card URL as the last line before trailers. Example: `https://kanbanzone.io/b/QJxJGohF/c/298`
+- **Kanban Zone link** (if applicable): Append the card URL as the last line before trailers. Example: `https://kanbanzone.io/b/QJxJGohF/c/298`
 - **Co-authorship:** End with `Co-Authored-By: <Model Name> <email>`. Example: `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`
 
 **Example commit message:**

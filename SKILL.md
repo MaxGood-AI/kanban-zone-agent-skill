@@ -4,7 +4,7 @@ description: Interact with Kanban Zone kanban boards via the Kanban Zone API. Us
 license: MIT
 compatibility: Requires python3 and environment variables KANBAN_ZONE_API_KEY and KANBAN_ZONE_BOARD_ID. Wraps Kanban Zone Public API v1.4.
 metadata:
-  version: "3.1.0"
+  version: "3.1.1"
   openclaw:
     requires:
       env:
@@ -19,6 +19,33 @@ metadata:
 # Kanban Zone
 
 Manage Kanban Zone kanban boards through the Kanban Zone Public API (v1.4).
+
+## ⚠️ Delete operations do not work (Kanban Zone server-side bug)
+
+**Every delete command currently fails** — `cards delete`, `checklists
+delete`, `tasks delete`, `webhooks delete`, and `tokens revoke`. Kanban Zone's
+API edge strips the body from DELETE requests, so Kanban Zone rejects them all
+with a "Body Parser failed" error and never deletes the record. This is a
+Kanban Zone server-side bug (confirmed 2026-05-16, reported to Kanban Zone) —
+not a problem with your request or this skill.
+
+The skill detects this and **exits non-zero** with a
+`KanbanZoneDeleteUnsupportedError` that explains the situation in full. It
+does **not** report a false success.
+
+**Guidance for agents:**
+
+- Do not call a delete command expecting it to succeed.
+- Do not retry a failed delete — no request shape works; retrying wastes API
+  quota.
+- If a user asks you to delete a card, checklist, task, webhook, or token,
+  tell them it must be done in the **Kanban Zone web UI**, and explain why.
+- `cards move` (e.g. to an Archive column) and `cards update` /
+  `checklists update` (rewriting titles/descriptions) still work and can
+  neutralize an unwanted record without deleting it.
+
+See `README.md` → "Deleting records is currently broken" for the full
+technical detail.
 
 ## ⚠️ Exec Safety Rule — Multi-line Commands
 
@@ -120,7 +147,7 @@ python3 scripts/kanban_zone_api.py cards move --id 42 --column-id COL2
 | `create-bulk` | Create multiple cards from a JSON file |
 | `update` | Update card fields (title, description, owner, watchers, custom fields, blocked status) |
 | `move` | Move a card to a different column |
-| `delete` | Delete a card permanently |
+| `delete` | Delete a card — ⚠️ currently non-functional (Kanban Zone API bug) |
 | `history` | Get the activity history for a card |
 | `metrics` | Get cycle time and lead time metrics for a card |
 | `links-add` | Add a card-to-card or external URL link to a card |
@@ -155,7 +182,7 @@ python3 scripts/kanban_zone_api.py checklists list --card 42
 |------------|-------------|
 | `create` | Create a checklist on a card, optionally pre-populating it with tasks |
 | `update` | Update a checklist's title or reorder its tasks |
-| `delete` | Delete a checklist from a card |
+| `delete` | Delete a checklist — ⚠️ currently non-functional (Kanban Zone API bug) |
 | `list` | List all checklists (and their tasks) on a card |
 
 ### tasks
@@ -171,7 +198,7 @@ python3 scripts/kanban_zone_api.py tasks update --id TASK_ID --completed true
 |------------|-------------|
 | `create` | Add a task to an existing checklist |
 | `update` | Update a task (title, completed status, assignee) |
-| `delete` | Delete a task from a checklist |
+| `delete` | Delete a task — ⚠️ currently non-functional (Kanban Zone API bug) |
 | `move` | Reorder a task within its checklist |
 
 ### webhooks
@@ -190,7 +217,7 @@ python3 scripts/kanban_zone_api.py webhooks verify-signature --payload-file /tmp
 | `get` | Get details of a specific webhook by ObjectId |
 | `create` | Register a new webhook endpoint with selected event types |
 | `update` | Update a webhook's URL or event subscription |
-| `delete` | Delete a webhook registration |
+| `delete` | Delete a webhook registration — ⚠️ currently non-functional (Kanban Zone API bug) |
 | `test` | Send a test ping to a registered webhook |
 | `verify-signature` | Verify an incoming webhook delivery's HMAC signature |
 
@@ -228,7 +255,7 @@ python3 scripts/kanban_zone_api.py tokens revoke --id TOKEN_ID
 | Subcommand | Description |
 |------------|-------------|
 | `assign` | Create and assign a new API token with an optional label |
-| `revoke` | Revoke an existing token by its ObjectId |
+| `revoke` | Revoke a token by its ObjectId — ⚠️ currently non-functional (Kanban Zone API bug) |
 | `list` | List all active tokens for the organization |
 
 ### org
@@ -368,7 +395,7 @@ All commands output JSON. Run `python3 scripts/kanban_zone_api.py --help` for fu
 | `cards` | `create-bulk` | Create multiple cards from a JSON file |
 | `cards` | `update` | Update card fields |
 | `cards` | `move` | Move a card to a column |
-| `cards` | `delete` | Delete a card |
+| `cards` | `delete` | Delete a card — ⚠️ non-functional (Kanban Zone API bug) |
 | `cards` | `history` | Get activity history for a card |
 | `cards` | `metrics` | Get cycle/lead time metrics for a card |
 | `cards` | `links-add` | Add a card-to-card or URL link |
@@ -379,17 +406,17 @@ All commands output JSON. Run `python3 scripts/kanban_zone_api.py --help` for fu
 | `comments` | `list` | List all comments on a card |
 | `checklists` | `create` | Create a checklist on a card |
 | `checklists` | `update` | Update a checklist's title or tasks |
-| `checklists` | `delete` | Delete a checklist from a card |
+| `checklists` | `delete` | Delete a checklist — ⚠️ non-functional (Kanban Zone API bug) |
 | `checklists` | `list` | List all checklists on a card |
 | `tasks` | `create` | Add a task to a checklist |
 | `tasks` | `update` | Update a task (title, completed, assignee) |
-| `tasks` | `delete` | Delete a task from a checklist |
+| `tasks` | `delete` | Delete a task — ⚠️ non-functional (Kanban Zone API bug) |
 | `tasks` | `move` | Reorder a task within its checklist |
 | `webhooks` | `list` | List all registered webhooks |
 | `webhooks` | `get` | Get a specific webhook by ObjectId |
 | `webhooks` | `create` | Register a new webhook endpoint |
 | `webhooks` | `update` | Update a webhook's URL or event |
-| `webhooks` | `delete` | Delete a webhook registration |
+| `webhooks` | `delete` | Delete a webhook — ⚠️ non-functional (Kanban Zone API bug) |
 | `webhooks` | `test` | Send a test ping to a webhook |
 | `webhooks` | `verify-signature` | Verify an incoming webhook delivery's HMAC signature |
 | `reports` | `throughput` | Cards completed per time unit |
@@ -401,7 +428,7 @@ All commands output JSON. Run `python3 scripts/kanban_zone_api.py --help` for fu
 | `reports` | `allocation` | Effort breakdown by label, owner, or custom field |
 | `reports` | `abandoned-effort` | Cards started but abandoned before completion |
 | `tokens` | `assign` | Create and assign a new API token |
-| `tokens` | `revoke` | Revoke a token by ObjectId |
+| `tokens` | `revoke` | Revoke a token — ⚠️ non-functional (Kanban Zone API bug) |
 | `tokens` | `list` | List all active tokens |
 | `org` | `me` | Return the authenticated user's profile |
 | `org` | `context` | Return the resolved board/org context |

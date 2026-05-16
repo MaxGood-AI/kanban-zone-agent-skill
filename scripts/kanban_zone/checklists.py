@@ -32,7 +32,7 @@ def cmd_update(args, ctx):
 
 
 def cmd_delete(args, ctx):
-    kanban_zone_http.api_request("DELETE", f"/checklists/{args.id}")
+    kanban_zone_http.delete_resource("checklist", f"/checklists/{args.id}")
     kanban_zone_output.print_json({"deleted": True, "id": args.id}, pretty=ctx.pretty)
 
 
