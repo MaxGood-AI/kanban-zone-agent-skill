@@ -1,3 +1,13 @@
+## 🚨 GIT CREDENTIALS — DO NOT TOUCH 🚨
+
+**NEVER UNDER ANY CIRCUMSTANCES CHANGE THE CREDENTIALS USED TO WORK WITH GIT REPOS ON ANY PLATFORM (LOCAL OR REMOTE). NEVER USE THE AWS CLI CREDENTIAL HELPER FOR ANY PURPOSE WHATSOEVER.**
+
+This includes (non-exhaustive): do not run `git config credential.helper`, `git credential-osxkeychain erase`, `git credential reject`, `aws codecommit credential-helper`, or any equivalent on any other credential store. Do not modify, delete, or rotate IAM HTTPS Git credentials, SSH keys, or stored keychain / credential-manager entries. If git authentication is failing, stop and ask the user — do not attempt to repair credentials yourself.
+
+Rationale: the user manages their own git credentials via GitHub Desktop and a credential store shared across many concurrent workstreams (local agents, remote agents, IDEs, CLI). Any agent-side credential change cascades destructively across all of those.
+
+---
+
 # Repository Guidelines
 
 ## CLAUDE.md / AGENTS.md Synchronization
