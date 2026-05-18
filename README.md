@@ -53,9 +53,9 @@ KANBAN_ZONE_API_KEY=your-api-key-here
 KANBAN_ZONE_BOARD_ID=your-default-board-public-id
 ```
 
-The skill loads `.env` automatically — no shell export needed. `KANBAN_ZONE_BOARD_ID` sets the default board for every command; pass `--board <id>` to override it for a single call.
+The skill loads `.env` automatically — no shell export needed. Discovery searches the current working directory and the script's own location (symlinks resolved), plus every ancestor directory of each, so a `.env` at your workspace root is found no matter which subdirectory you run the command from. `KANBAN_ZONE_BOARD_ID` sets the default board for every command; pass `--board <id>` to override it for a single call.
 
-**Multiple boards:** create one `.env` per project folder, each with the relevant `KANBAN_ZONE_BOARD_ID`. The same `KANBAN_ZONE_API_KEY` works across all boards and can be set once as a system environment variable if you prefer.
+**Multiple boards:** create one `.env` per project folder, each with the relevant `KANBAN_ZONE_BOARD_ID`. The nearest `.env` (current directory or closest ancestor) wins, and a real environment variable always overrides a `.env` value. The same `KANBAN_ZONE_API_KEY` works across all boards and can be set once as a system environment variable if you prefer.
 
 ## API Key
 

@@ -2,6 +2,36 @@
 
 All notable changes to the Kanban Zone skill. Versioning follows SemVer.
 
+## [3.1.2] — 2026-05-18
+
+### Fixed
+- `cards search` crashed with `KeyError: 'publicId'` on every invocation.
+  The `/boards` API wraps each board in a `BoardItem` envelope (the
+  board-level counterpart of the `CardItem` envelope), but `cmd_search`
+  read `publicId` directly off the envelope. A new `_unwrap_board()` helper
+  flattens the envelope before the lookup; already-flat board dicts still
+  work. The existing search test used flat fixtures that never matched the
+  real API shape, so it masked the bug — it now uses the `BoardItem`
+  envelope, with an added test covering the flat shape.
+- `.env` auto-discovery was fragile: it checked only the current working
+  directory and the script's immediate parent, and used a non-symlink-resolved
+  path. When the skill is installed as a symlink (e.g.
+  `~/.claude/skills/kanban-zone`) and invoked from any other directory, the
+  workspace `.env` was never found, so every command failed with
+  `--board ... is required` / `KANBAN_ZONE_API_KEY is not set`. Discovery now
+  resolves symlinks and walks every ancestor of both the cwd and the script's
+  real location, so a workspace-root `.env` is found regardless of cwd.
+
+### Documentation
+- SKILL.md: new "Reading Command Output" section. Agents repeatedly piped CLI
+  output through an inline `python3 -c` parser that assumed the success shape;
+  on failure the output is `{"error": true, ...}`, so the parser raised a
+  `KeyError` that masked the real error message and forced a wasted re-run.
+  The section tells agents to run commands bare with `--pretty` and read the
+  JSON directly, and documents the per-command response envelopes.
+- SKILL.md: "Environment Setup" rewritten to describe the new ancestor-walking
+  `.env` discovery and to state that no `cd` is needed.
+
 ## [3.1.1] — 2026-05-16
 
 ### Fixed

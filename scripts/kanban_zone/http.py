@@ -10,7 +10,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-SKILL_VERSION = "3.1.1"
+SKILL_VERSION = "3.1.2"
 BASE_URL = "https://integrations.kanbanzone.io/v1"
 
 _cached_auth_header = None

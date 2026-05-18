@@ -25,6 +25,25 @@ def _unwrap_card(card):
     return card
 
 
+def _unwrap_board(board):
+    """Return a flat board dict, handling the v1.4 {"BoardItem": {...}} envelope.
+
+    The v1.4 /boards responses wrap each board in a BoardItem envelope, the
+    board-level counterpart of the CardItem envelope handled by _unwrap_card.
+    Legacy and test fixtures may pass already-flat dicts. This helper returns a
+    single flat dict in either case.
+    """
+    if not isinstance(board, dict):
+        return board
+    inner = board.get("BoardItem")
+    if isinstance(inner, dict):
+        flat = dict(inner)
+        if "_id" in board and "_id" not in flat:
+            flat["_id"] = board["_id"]
+        return flat
+    return board
+
+
 def _require_board(ctx):
     if not ctx.board:
         raise ValueError("--board or KANBAN_ZONE_BOARD_ID is required")
@@ -248,14 +267,18 @@ def cmd_search(args, ctx):
     boards_resp = kanban_zone_http.api_request("GET", "/boards",
                                        params={"includeArchived": False}) or {}
     matches = []
-    for b in boards_resp.get("boards", []):
-        cards = _fetch_all_cards(b["publicId"])
+    for raw_board in boards_resp.get("boards", []):
+        b = _unwrap_board(raw_board)
+        public_id = b.get("publicId")
+        if not public_id:
+            continue
+        cards = _fetch_all_cards(public_id)
         filtered = _filter_cards(
             cards, label=args.label, owner=args.owner, query=args.query,
         )
         for c in filtered:
             c2 = dict(c)
-            c2["_board"] = b["publicId"]
+            c2["_board"] = public_id
             c2["_boardName"] = b.get("name")
             matches.append(c2)
     kanban_zone_output.print_json({"count": len(matches), "cards": matches},

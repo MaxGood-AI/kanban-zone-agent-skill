@@ -70,10 +70,13 @@ class TestCardLinks(unittest.TestCase):
 
 class TestCardsSearch(unittest.TestCase):
     def test_search_iterates_all_boards(self):
+        # /boards wraps each board in a BoardItem envelope (v1.4), the
+        # board-level counterpart of the CardItem envelope. cmd_search must
+        # unwrap it before reading publicId.
         with FakeApi() as fake:
             fake.expect("GET", "/boards", params={"includeArchived": False}).returns({
-                "boards": [{"publicId": "B1", "name": "One"},
-                           {"publicId": "B2", "name": "Two"}],
+                "boards": [{"BoardItem": {"publicId": "B1", "name": "One"}},
+                           {"BoardItem": {"publicId": "B2", "name": "Two"}}],
             })
             fake.expect("GET", "/cards", params={
                 "board": "B1", "page": 1, "count": 100, "includeArchived": False,
@@ -88,6 +91,22 @@ class TestCardsSearch(unittest.TestCase):
                 kanban_zone_cards.cmd_search(_ns(query="deploy", label=None, owner=None), _Ctx())
             self.assertIn('"deploy soon"', buf.getvalue())
             self.assertNotIn('"buy lunch"', buf.getvalue())
+            self.assertIn('"_boardName": "One"', buf.getvalue())
+
+    def test_search_accepts_flat_board_dicts(self):
+        # Already-flat board dicts (legacy / fixtures) must still work.
+        with FakeApi() as fake:
+            fake.expect("GET", "/boards", params={"includeArchived": False}).returns({
+                "boards": [{"publicId": "B1", "name": "One"}],
+            })
+            fake.expect("GET", "/cards", params={
+                "board": "B1", "page": 1, "count": 100, "includeArchived": False,
+            }).returns({"cards": [{"_id": "a" * 24, "CardItem": {"number": 1, "title": "deploy soon"}}],
+                        "hasMore": False})
+            buf = io.StringIO()
+            with patch("sys.stdout", buf):
+                kanban_zone_cards.cmd_search(_ns(query="deploy", label=None, owner=None), _Ctx())
+            self.assertIn('"deploy soon"', buf.getvalue())
 
 
 class TestWipCheck(unittest.TestCase):

@@ -10,6 +10,10 @@ import os
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# realpath() resolves symlinks: when the skill is installed as a symlink
+# (e.g. ~/.claude/skills/kanban-zone -> the real repo), abspath() alone keeps
+# the symlinked path, so .env discovery never reaches the real workspace.
+REAL_HERE = os.path.dirname(os.path.realpath(__file__))
 sys.path.insert(0, HERE)
 
 from kanban_zone import http as kanban_zone_http  # noqa: E402
@@ -17,20 +21,41 @@ from kanban_zone import output as kanban_zone_output  # noqa: E402
 from kanban_zone.cache import Cache  # noqa: E402
 
 
+def _env_search_dirs():
+    """Directories to search for a `.env`, nearest-first.
+
+    Walks up from the current working directory and from the script's own
+    (symlink-resolved) location to the filesystem root, so the CLI finds a
+    workspace-root `.env` no matter which directory it is invoked from.
+    """
+    seen = set()
+    for start in (os.getcwd(), REAL_HERE):
+        d = os.path.abspath(start)
+        while True:
+            if d not in seen:
+                seen.add(d)
+                yield d
+            parent = os.path.dirname(d)
+            if parent == d:
+                break
+            d = parent
+
+
 def _load_env_file():
-    candidates = [os.getcwd(), os.path.dirname(HERE)]
-    for d in candidates:
+    for d in _env_search_dirs():
         path = os.path.join(d, ".env")
-        if os.path.isfile(path):
-            with open(path) as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith("#") or "=" not in line:
-                        continue
-                    k, v = line.split("=", 1)
-                    k = k.strip()
-                    v = v.strip().strip('"').strip("'")
-                    os.environ.setdefault(k, v)
+        if not os.path.isfile(path):
+            continue
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                k = k.strip()
+                v = v.strip().strip('"').strip("'")
+                # setdefault: real env vars and nearer .env files win.
+                os.environ.setdefault(k, v)
 
 
 def _cache_path():

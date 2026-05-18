@@ -4,7 +4,7 @@ description: Interact with Kanban Zone kanban boards via the Kanban Zone API. Us
 license: MIT
 compatibility: Requires python3 and environment variables KANBAN_ZONE_API_KEY and KANBAN_ZONE_BOARD_ID. Wraps Kanban Zone Public API v1.4.
 metadata:
-  version: "3.1.1"
+  version: "3.1.2"
   openclaw:
     requires:
       env:
@@ -77,11 +77,36 @@ with open('/tmp/kanban-zone-run.py', 'w') as f:
 
 Or simply build the whole call as a Python script in `/tmp/` and exec that file directly.
 
+## ⚠️ Reading Command Output — do not pipe through inline parsers
+
+Every command prints a **single JSON value** to stdout and nothing else. On success it is the result object/array; on failure it is `{"error": true, "message": "..."}` **and the process exits non-zero**.
+
+**Do not pipe the output through an inline `python3 -c "..."` (or `jq`, `grep`, etc.) to pluck a field.** Two things go wrong, and both waste a turn:
+
+- The inline parser assumes the *success* shape. When the command fails, the output is the `{"error": ...}` object instead, so the parser raises `KeyError` on the field you expected — and that traceback **replaces** the genuinely helpful `message`, so you have to re-run the command bare just to see what actually went wrong.
+- Inline `python3 -c` scripts are exactly the "complex interpreter invocation" the exec preflight blocks (see the Exec Safety Rule above).
+
+**Instead:** run the command on its own with `--pretty` and read the JSON directly from the tool result. It is already structured — you do not need to post-process it.
+
+```bash
+# GOOD — run it bare, read the JSON yourself
+python3 scripts/kanban_zone_api.py --pretty cards get --id 65
+
+# BAD — parser crashes on the error shape and hides the real message
+python3 scripts/kanban_zone_api.py cards get --id 65 | python3 -c "import sys,json; print(json.load(sys.stdin)['CardItem']['title'])"
+```
+
+If a result is genuinely too large to read inline (e.g. `cards search` across many boards) and you must extract fields with a script, **write the script to a `/tmp/*.py` file** (per the Exec Safety Rule) and have it **check `if data.get("error"): ...` first** before touching success-shape keys.
+
+**Response shapes vary by command** — don't assume. `cards get` returns `{"_id", "CardItem", "meta"}` (the card is nested under `CardItem`); `cards list` / `cards search` return `{"count", "cards": [...]}` with each card wrapped in a `CardItem` envelope; `boards list` wraps each board in a `BoardItem` envelope. When unsure, run once with `--pretty` and look.
+
 ## Environment Setup
 
 The CLI script reads two environment variables: `KANBAN_ZONE_API_KEY` and `KANBAN_ZONE_BOARD_ID`.
 
-The script **automatically loads** these from a `.env` file if they are not already in the environment. It searches for `.env` in the current working directory and in the skill's parent directory. No shell export or command substitution is needed — just run the Python command directly.
+The script **automatically loads** these from a `.env` file if they are not already in the environment. It searches the current working directory **and the script's own location (symlinks resolved)**, plus **every ancestor directory of each**, up to the filesystem root — so a workspace-root `.env` is found no matter which directory you run the command from. No shell export, `cd`, or command substitution is needed — just run the Python command directly.
+
+**You do not need to `cd` anywhere first.** If you see `--board or KANBAN_ZONE_BOARD_ID is required` or `KANBAN_ZONE_API_KEY is not set`, the `.env` is genuinely missing — do not retry from a different directory or re-run blindly. Either pass `--board <id>` / `--api-token <key>` explicitly, or tell the user the `.env` is not present in the workspace tree.
 
 **Get your API key:** Settings > Organization Settings > Integrations > API Key
 Direct: `https://kanbanzone.io/settings/integrations`
