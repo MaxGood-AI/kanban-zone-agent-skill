@@ -4,36 +4,36 @@
 
 Manage your [Kanban Zone](https://kanbanzone.com) boards — cards, columns, comments, checklists, tasks, webhooks, and flow reports — directly from any Claude Code-compatible workspace. Built in official partnership with Kanban Zone, this skill wraps the **Kanban Zone Public API v1.4** using nothing but the Python 3 standard library: no virtual environment, no third-party packages, and no external runtime dependencies of any kind. Drop it into a repo, point it at your API key, and your AI assistant gains full board access in seconds.
 
-## ⚠️ Deleting records is currently broken
+> **Note on delete operations:** Kanban Zone's DELETE API was non-functional
+> server-side from 2026-05-16 to 2026-06-11 ("Body Parser failed" returned
+> behind HTTP 200). **Kanban Zone has fixed this** — all delete commands work
+> normally again. The skill retains a regression guard: if the old failure
+> envelope ever reappears, deletes fail loudly
+> (`KanbanZoneDeleteUnsupportedError`) instead of reporting a fake success.
 
-**Kanban Zone's DELETE API is non-functional, and this skill cannot work
-around it.** Every delete command is affected:
+## ⚠️ Monthly API usage limit (error code 2006)
 
-- `cards delete`
-- `checklists delete`
-- `tasks delete`
-- `webhooks delete`
-- `tokens revoke`
+Kanban Zone enforces a **monthly API-call quota** per organization, tracked
+per API key against the plan's limit. When the quota is exhausted, every API
+call fails until the month's quota resets or the plan's limit is raised.
 
-**What happens:** Kanban Zone's API edge (AWS CloudFront / API Gateway) strips
-the request body from every DELETE request. Kanban Zone's DELETE routes then
-reject the now-empty body with a "Body Parser failed" error — returned,
-misleadingly, as `HTTP 200`. The record is never deleted. No request shape
-avoids this; it is a server-side defect, confirmed live on 2026-05-16 and
-reported to Kanban Zone.
+**What happens:** Kanban Zone returns the rejection as **HTTP 200**, with the
+error visible only inside the response body
+(`{"code": 2006, "status": 429, "name": "TooManyRequests", "message": "API
+Usage limit reached"}`). Naive clients treat that as a successful, empty
+response — in this skill (before v3.2.0) it surfaced as a misleading
+"card not found" from the card-number resolver.
 
-**What the skill does:** rather than silently report a fake success, every
-delete command **fails loudly** — it exits non-zero with a clear, actionable
-error (`KanbanZoneDeleteUnsupportedError`) stating that the record was *not*
-deleted, that this is a known Kanban Zone bug, that retrying will not help,
-and that the record must be removed another way.
+**What the skill does:** every command detects the code-2006 envelope (and
+any other error envelope hidden behind an HTTP 200) and **fails loudly** —
+it exits non-zero with a `KanbanZoneUsageLimitError` stating that the request
+was rejected, that retrying will not help, and where to check usage.
 
-**Workaround:** delete cards, checklists, tasks, webhooks, and tokens from
-the **Kanban Zone web UI**. Programmatic deletion is not possible until
-Kanban Zone ships a server-side fix. For cards, `cards move` (e.g. to an
-Archive column) still works and can get an unwanted card out of the way.
-
-This section will be removed once Kanban Zone fixes the API.
+**What to do:** check your usage in the Kanban Zone web interface under
+**Organization > Integrations** (<https://kanbanzone.io/settings/integrations>)
+— the "Available API Calls" meter shows consumption against your plan's
+monthly limit. To restore API access, wait for the monthly reset or upgrade
+the plan's API allowance.
 
 ## Install
 

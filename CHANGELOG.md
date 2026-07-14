@@ -2,6 +2,43 @@
 
 All notable changes to the Kanban Zone skill. Versioning follows SemVer.
 
+## [3.2.0] — 2026-07-14
+
+### Fixed
+- When the organization's **monthly API usage limit** is exhausted, Kanban
+  Zone rejects every call with HTTP 200 and the error only in the body
+  (`{"code": 2006, "status": 429, "name": "TooManyRequests", "message":
+  "API Usage limit reached"}`). The skill passed that envelope through as if
+  it were data, so callers saw empty results instead of an error — most
+  damagingly, the card-number resolver scanned "0 of None cards" and reported
+  a misleading `Card number N not found` for cards that exist. Confirmed
+  live 2026-06-11.
+
+### Added
+- `http._raise_on_error_envelope()`: every 2xx response body is now checked
+  for a hidden Kanban Zone error envelope. The code-2006 / `TooManyRequests`
+  shape raises the new `KanbanZoneUsageLimitError` (exit non-zero) with an
+  agent-readable message stating the request was rejected, that retrying is
+  futile until the monthly quota resets or the plan limit is raised, and
+  directing the user to the **Organization > Integrations** panel
+  (https://kanbanzone.io/settings/integrations) to check the "Available API
+  Calls" meter. Any other envelope carrying a numeric `status` >= 400 plus
+  `name` and `message` keys raises a plain `KanbanZoneApiError` with the
+  body's status.
+- "Monthly API usage limit" sections in `README.md` and `SKILL.md` with
+  do-not-retry guidance for agents.
+
+### Changed
+- **Kanban Zone fixed its DELETE API (2026-06-11)** — the server-side
+  "Body Parser failed" defect that broke every DELETE endpoint since
+  2026-05-16 is resolved, and all five delete commands (`cards delete`,
+  `checklists delete`, `tasks delete`, `webhooks delete`, `tokens revoke`)
+  work normally again. The warning sections in `README.md`, `SKILL.md`, and
+  `AGENTS.md` are replaced with historical notes, and the per-command ⚠️
+  annotations are removed. `http.delete_resource()` keeps the failure-envelope
+  detection as a regression guard (now worded as such): a returning defect
+  fails loudly instead of reporting a fake success.
+
 ## [3.1.2] — 2026-05-18
 
 ### Fixed

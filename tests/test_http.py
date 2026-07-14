@@ -35,6 +35,31 @@ class _Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'{"error": "not found"}')
             return
+        # The real Kanban Zone API delivers these error envelopes with
+        # HTTP 200 — the error is only visible inside the body.
+        hidden_200_bodies = {
+            "/v1/quota": (
+                b'{"code": 2006, "status": 429, "name": "TooManyRequests",'
+                b' "message": "API Usage limit reached"}'
+            ),
+            "/v1/quota-name-only": (
+                b'{"name": "TooManyRequests", "message": "API Usage limit reached"}'
+            ),
+            "/v1/hidden-error": (
+                b'{"status": 500, "name": "InternalError", "message": "boom"}'
+            ),
+            "/v1/benign-status-string": (
+                b'{"status": "In Progress", "name": "My card", "ok": true}'
+            ),
+            "/v1/benign-status-number": b'{"status": 404, "ok": true}',
+        }
+        payload = hidden_200_bodies.get(self.path)
+        if payload is not None:
+            self.send_response(200)
+            self.send_header("content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(payload)
+            return
         self.send_response(200)
         self.send_header("content-type", "application/json")
         self.end_headers()
@@ -192,6 +217,74 @@ class TestApiRequest(unittest.TestCase):
         finally:
             kanban_zone_http.BASE_URL = orig
             srv2.shutdown()
+
+
+class TestHidden200ErrorEnvelopes(unittest.TestCase):
+    """Kanban Zone delivers some errors as HTTP 200 with the error only in
+    the body. api_request() must surface those as exceptions, not hand the
+    envelope to callers as if it were data (which made the monthly usage
+    limit look like "card not found" — see CHANGELOG 3.2.0)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.srv = _start_server()
+        cls.host, cls.port = cls.srv.server_address
+        cls.base = f"http://{cls.host}:{cls.port}/v1"
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.srv.shutdown()
+
+    def setUp(self):
+        kanban_zone_http._cached_auth_header = None
+        os.environ["KANBAN_ZONE_API_KEY"] = "abc:secret"
+        self._orig_base = kanban_zone_http.BASE_URL
+        kanban_zone_http.BASE_URL = self.base
+
+    def tearDown(self):
+        kanban_zone_http.BASE_URL = self._orig_base
+        os.environ.pop("KANBAN_ZONE_API_KEY", None)
+        kanban_zone_http._cached_auth_header = None
+
+    def test_usage_limit_code_2006_raises_usage_limit_error(self):
+        with self.assertRaises(kanban_zone_http.KanbanZoneUsageLimitError) as cm:
+            kanban_zone_http.api_request("GET", "/quota")
+        self.assertEqual(cm.exception.status, 429)
+        msg = str(cm.exception)
+        self.assertIn("monthly API usage limit", msg)
+        self.assertIn("do NOT retry", msg)
+        self.assertIn("Organization > Integrations", msg)
+        self.assertIn("https://kanbanzone.io/settings/integrations", msg)
+
+    def test_toomanyrequests_name_without_code_raises_usage_limit_error(self):
+        with self.assertRaises(kanban_zone_http.KanbanZoneUsageLimitError):
+            kanban_zone_http.api_request("GET", "/quota-name-only")
+
+    def test_usage_limit_error_is_an_api_error(self):
+        """The CLI's top-level handler catches KanbanZoneApiError; the usage
+        limit error must be caught by that same handler."""
+        self.assertTrue(
+            issubclass(
+                kanban_zone_http.KanbanZoneUsageLimitError,
+                kanban_zone_http.KanbanZoneApiError,
+            )
+        )
+
+    def test_other_hidden_error_envelope_raises_api_error(self):
+        with self.assertRaises(kanban_zone_http.KanbanZoneApiError) as cm:
+            kanban_zone_http.api_request("GET", "/hidden-error")
+        self.assertEqual(cm.exception.status, 500)
+        self.assertNotIsInstance(
+            cm.exception, kanban_zone_http.KanbanZoneUsageLimitError
+        )
+
+    def test_benign_payload_with_status_string_not_flagged(self):
+        result = kanban_zone_http.api_request("GET", "/benign-status-string")
+        self.assertEqual(result.get("ok"), True)
+
+    def test_benign_payload_with_numeric_status_but_no_message_not_flagged(self):
+        result = kanban_zone_http.api_request("GET", "/benign-status-number")
+        self.assertEqual(result.get("ok"), True)
 
 
 if __name__ == "__main__":

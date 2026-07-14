@@ -83,27 +83,24 @@ tests/
 - **org.py**: Organization context — `me` (current user) and `context` (org info).
 - **legacy.py**: v2 backward-compatibility wrappers. Accepts v2 CLI syntax (e.g., integer card IDs) and wraps v3 handlers.
 
-## Known API Limitation — Delete Operations
+## Historical API Defect — Delete Operations (fixed 2026-06-11)
 
-Kanban Zone's DELETE endpoints are non-functional server-side. Every DELETE
-(`/cards`, `/checklists`, `/tasks`, `/webhooks`, `/tokens`) is answered with
-`HTTP 200` + `{"message": "Body Parser failed ..."}` and never deletes the
-record — Kanban Zone's API edge (AWS CloudFront / API Gateway) strips the
-request body, and the DELETE routes then reject the now-empty body. No
-request shape works around it. (Confirmed live 2026-05-16; reported to
-Kanban Zone.)
+From 2026-05-16 to 2026-06-11, Kanban Zone's DELETE endpoints were
+non-functional server-side: every DELETE (`/cards`, `/checklists`, `/tasks`,
+`/webhooks`, `/tokens`) was answered with `HTTP 200` +
+`{"message": "Body Parser failed ..."}` and never deleted the record —
+Kanban Zone's API edge (AWS CloudFront / API Gateway) stripped the request
+body, and the DELETE routes then rejected the now-empty body. Kanban Zone
+fixed the defect on 2026-06-11 and deletes work normally again.
 
 Implications for contributors:
 
-- All five delete commands route through `http.delete_resource()`, which
-  raises `KanbanZoneDeleteUnsupportedError` (a `KanbanZoneApiError` subclass)
-  carrying a message written for both humans and AI agents. Do **not** "fix"
-  a failing delete by retrying, changing the request body, or suppressing the
-  error — the defect is in Kanban Zone's API, not this skill.
+- All five delete commands still route through `http.delete_resource()`,
+  which keeps the "Body Parser failed" detection as a **regression guard**:
+  if the envelope ever reappears, the command raises
+  `KanbanZoneDeleteUnsupportedError` (a `KanbanZoneApiError` subclass)
+  instead of reporting a fake success. Do not remove the guard.
 - Regression coverage lives in `tests/test_delete_endpoint.py`.
-- When Kanban Zone ships a server-side fix, restore a plain success path in
-  the delete commands and remove the warning sections from `README.md` and
-  `SKILL.md`.
 
 ## Adding a New Endpoint: Step-by-Step Template
 
