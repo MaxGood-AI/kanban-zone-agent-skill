@@ -83,24 +83,17 @@ tests/
 - **org.py**: Organization context — `me` (current user) and `context` (org info).
 - **legacy.py**: v2 backward-compatibility wrappers. Accepts v2 CLI syntax (e.g., integer card IDs) and wraps v3 handlers.
 
-## Historical API Defect — Delete Operations (fixed 2026-06-11)
+## Delete Operations
 
-From 2026-05-16 to 2026-06-11, Kanban Zone's DELETE endpoints were
-non-functional server-side: every DELETE (`/cards`, `/checklists`, `/tasks`,
-`/webhooks`, `/tokens`) was answered with `HTTP 200` +
-`{"message": "Body Parser failed ..."}` and never deleted the record —
-Kanban Zone's API edge (AWS CloudFront / API Gateway) stripped the request
-body, and the DELETE routes then rejected the now-empty body. Kanban Zone
-fixed the defect on 2026-06-11 and deletes work normally again.
+All five delete commands (`/cards`, `/checklists`, `/tasks`, `/webhooks`,
+`/tokens`) route through `http.delete_resource()`, which guards against a
+failure disguised as success: an `HTTP 200` response whose body is
+`{"message": "Body Parser failed ..."}` instead of the deleted record. When
+that envelope is detected, the command raises
+`KanbanZoneDeleteUnsupportedError` (a `KanbanZoneApiError` subclass) instead
+of reporting a fake success. Do not remove this guard.
 
-Implications for contributors:
-
-- All five delete commands still route through `http.delete_resource()`,
-  which keeps the "Body Parser failed" detection as a **regression guard**:
-  if the envelope ever reappears, the command raises
-  `KanbanZoneDeleteUnsupportedError` (a `KanbanZoneApiError` subclass)
-  instead of reporting a fake success. Do not remove the guard.
-- Regression coverage lives in `tests/test_delete_endpoint.py`.
+Regression coverage lives in `tests/test_delete_endpoint.py`.
 
 ## Adding a New Endpoint: Step-by-Step Template
 
@@ -341,6 +334,4 @@ for x in range(10):
 EOF
 python3 /tmp/my_script.py
 ```
-
-This is a v2 rule carried forward to v3 to maintain consistency.
 

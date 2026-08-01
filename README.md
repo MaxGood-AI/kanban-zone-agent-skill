@@ -4,11 +4,10 @@
 
 Manage your [Kanban Zone](https://kanbanzone.com) boards — cards, columns, comments, checklists, tasks, webhooks, and flow reports — directly from any Claude Code-compatible workspace. Built in official partnership with Kanban Zone, this skill wraps the **Kanban Zone Public API v1.4** using nothing but the Python 3 standard library: no virtual environment, no third-party packages, and no external runtime dependencies of any kind. Drop it into a repo, point it at your API key, and your AI assistant gains full board access in seconds.
 
-> **Note on delete operations:** Kanban Zone's DELETE API was non-functional
-> server-side from 2026-05-16 to 2026-06-11 ("Body Parser failed" returned
-> behind HTTP 200). **Kanban Zone has fixed this** — all delete commands work
-> normally again. The skill retains a regression guard: if the old failure
-> envelope ever reappears, deletes fail loudly
+> **Note on delete operations:** All delete commands work normally. Each one
+> checks that the response isn't a failure disguised behind an HTTP 200
+> status ("Body Parser failed" in the body instead of the deleted record);
+> when it detects that pattern, it fails loudly
 > (`KanbanZoneDeleteUnsupportedError`) instead of reporting a fake success.
 
 ## ⚠️ Monthly API usage limit (error code 2006)
@@ -21,8 +20,7 @@ call fails until the month's quota resets or the plan's limit is raised.
 error visible only inside the response body
 (`{"code": 2006, "status": 429, "name": "TooManyRequests", "message": "API
 Usage limit reached"}`). Naive clients treat that as a successful, empty
-response — in this skill (before v3.2.0) it surfaced as a misleading
-"card not found" from the card-number resolver.
+response instead of surfacing the underlying error.
 
 **What the skill does:** every command detects the code-2006 envelope (and
 any other error envelope hidden behind an HTTP 200) and **fails loudly** —
@@ -212,21 +210,21 @@ The full command surface — every group, every subcommand, every flag — is do
 
 All commands output JSON and accept `--board <id>` to override the default board.
 
-## What's New in v3
+## Feature Highlights
 
-- **API v1.4 coverage** — comments, checklists, tasks, tokens, webhooks, and eight flow-metric report types, all missing from v2.
-- **Grouped CLI** — nine resource groups (`boards`, `cards`, `comments`, …) replace the flat monolithic surface, making discovery and tab-completion practical.
-- **Hidden legacy aliases** — every v2 flat command (`create-card`, `move-card`, etc.) still works as a hidden alias so existing scripts need no changes.
+- **API v1.4 coverage** — comments, checklists, tasks, tokens, webhooks, and eight flow-metric report types.
+- **Grouped CLI** — nine resource groups (`boards`, `cards`, `comments`, …) organize the command surface for easy discovery and tab-completion.
+- **Legacy flat-command aliases** — flat-style commands (`create-card`, `move-card`, etc.) work as hidden aliases alongside the grouped surface, so scripts and saved AI prompts using those names work unmodified.
 - **Bidirectional ID cache** — card numbers and ObjectIds resolve symmetrically. The cache is a persistent JSON file populated opportunistically by every list/get response. Use `--no-cache` to bypass it for a single call.
 - **Silent endpoint migration** — deprecated API endpoints redirect transparently; no consumer code changes required.
 - **Signature verifier** — `webhooks verify-signature` provides HMAC-SHA1 delivery verification with a single command.
 - **≥ 95 % test coverage** — enforced as a hard quality gate; `make coverage` reports the current figure.
 
-Full history: see [`CHANGELOG.md`](CHANGELOG.md).
+See [`CHANGELOG.md`](CHANGELOG.md) for release notes.
 
-## Migration from v2
+## Legacy Command Aliases
 
-Every v2 flat command (`create-card`, `update-card`, `move-card`, `link-card`, `search-cards`, etc.) is registered as a hidden alias in v3 — it does not appear in `--help` but it still works. Existing scripts and saved AI prompts that use those names require zero changes. New code should use the grouped surface (`cards create`, `cards move`, `cards links-add`, `cards search`). For the complete alias-to-grouped-command mapping, see [`references/migration-from-v2.md`](references/migration-from-v2.md).
+Flat-style commands (`create-card`, `update-card`, `move-card`, `link-card`, `search-cards`, etc.) are registered as hidden aliases — they do not appear in `--help`, but every call succeeds. Scripts and saved AI prompts using those names work unmodified. New commands should use the grouped surface (`cards create`, `cards move`, `cards links-add`, `cards search`). For the complete alias-to-grouped-command mapping, see [`references/migration-from-v2.md`](references/migration-from-v2.md).
 
 ## License
 
